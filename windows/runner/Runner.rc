@@ -89,11 +89,11 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.github.ivanvatov.ttt" "\0"
+            VALUE "CompanyName", "io.github.ivanvatov.ttt" "\0"
             VALUE "FileDescription", "time_track_transfer" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "time_track_transfer" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2023 com.github.ivanvatov.ttt. All rights reserved." "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2023 io.github.ivanvatov.ttt. All rights reserved." "\0"
             VALUE "OriginalFilename", "time_track_transfer.exe" "\0"
             VALUE "ProductName", "time_track_transfer" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
