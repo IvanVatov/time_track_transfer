@@ -230,7 +230,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       children.add(ElevatedButton(
           onPressed: () {
             storage.write(Constants.keyJiraStatus, _statusSelection!.name);
-            context.goNamed(RouteName.panel);
+            context.pushReplacementNamed(RouteName.panel);
           },
           child: const Text('Next')));
     }

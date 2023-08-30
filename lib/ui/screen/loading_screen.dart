@@ -21,9 +21,9 @@ class _LoadingScreenState extends State<LoadingScreen> {
   void initState() {
     checkConfiguration((result) {
       if (result) {
-        context.goNamed(RouteName.panel);
+        context.pushReplacementNamed(RouteName.panel);
       } else {
-        context.goNamed(RouteName.config);
+        context.pushReplacementNamed(RouteName.config);
       }
     });
     super.initState();
@@ -40,6 +40,8 @@ class _LoadingScreenState extends State<LoadingScreen> {
         jiraToken.isNotEmpty &&
         jiraEmail != null &&
         jiraEmail.isNotEmpty) {
+
+      jiraApi.jiraEndpoint = jiraEndpoint;
       jiraApi.jiraEmail = jiraEmail;
       jiraApi.jiraToken = jiraToken;
 

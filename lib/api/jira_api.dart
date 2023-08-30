@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:injectable/injectable.dart';
 import 'package:time_track_transfer/api/jira/issue.dart';
 import 'package:time_track_transfer/api/jira/jira_project.dart';
@@ -11,18 +12,20 @@ import 'package:time_track_transfer/constants.dart';
 
 @Singleton(dispose: disposeApiService)
 class JiraApi {
-  final Dio _client = Dio();
+  final Dio _client = Dio()
+  ..httpClientAdapter =
+      IOHttpClientAdapter(onHttpClientCreate: (client) {
+    client.findProxy = (uri) {
+      return 'PROXY localhost:8888';
+    };
+    return client;
+  });
 
-  String jiraEndpoint = "";
-  String jiraEmail = "";
-  String jiraToken = "";
+  late String jiraEndpoint;
+  late String jiraEmail;
+  late String jiraToken;
 
-  JiraApi() {
-    Options(headers: {
-      Constants.keyAuthorization:
-          "${Constants.keyBasic} ${base64Encode(utf8.encode("$jiraEmail:$jiraToken"))}"
-    });
-  }
+  JiraApi();
 
   Options _getHeaderOptions() {
     return Options(headers: {
@@ -35,8 +38,6 @@ class JiraApi {
     Response response = await _client.get("$jiraEndpoint/rest/api/2/project",
         options: _getHeaderOptions());
 
-    response;
-
     return (response.data as List)
         .map((i) => JiraProject.fromJson(i as Map<String, dynamic>))
         .toList(growable: false);
@@ -46,8 +47,6 @@ class JiraApi {
     Response response = await _client.get(
         "$jiraEndpoint/rest/api/2/project/$projectId/statuses",
         options: _getHeaderOptions());
-
-    response;
 
     return (response.data as List)
         .map((i) => Task.fromJson(i as Map<String, dynamic>))

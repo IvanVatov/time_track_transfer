@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/di.dart';
@@ -8,7 +10,19 @@ import 'package:time_track_transfer/util/Storage.dart';
 
 const storage = Storage();
 
+class MyHttpOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
+
 void main() {
+
+  HttpOverrides.global = MyHttpOverrides();
+
   configureDependencies();
 
   runApp(const TimeTrackTransfer());
