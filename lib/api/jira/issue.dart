@@ -10,6 +10,13 @@ class Issue {
   String key;
   Fields fields;
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  late DateTime start;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  late DateTime end;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  bool isPosted = false;
+
   Issue(this.id, this.self, this.key, this.fields);
 
   factory Issue.fromJson(Map<String, dynamic> json) => _$IssueFromJson(json);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/api/jira/jira_project.dart';
 import 'package:time_track_transfer/api/jira/status.dart';
 import 'package:time_track_transfer/api/jira/task.dart';
@@ -14,6 +15,8 @@ import 'package:time_track_transfer/main.dart';
 import 'package:time_track_transfer/ui/widget/text_styles.dart';
 import 'package:time_track_transfer/constants.dart';
 import 'package:collection/collection.dart';
+import 'package:time_track_transfer/util/hour_minutes.dart';
+import 'package:time_track_transfer/util/pair.dart';
 
 class ConfigScreen extends StatefulWidget {
   const ConfigScreen({super.key});
@@ -64,6 +67,12 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   late TextEditingController _togglTokenController;
 
+  final FocusNode _workingHoursFocusNode = FocusNode();
+  late TextEditingController _workingHours;
+
+  final FocusNode _startTimeFocusNode = FocusNode();
+  late TextEditingController _startTime;
+
   @override
   void initState() {
     _jiraEndpointController = TextEditingController();
@@ -71,6 +80,21 @@ class _ConfigScreenState extends State<ConfigScreen> {
     _jiraTokenController = TextEditingController();
 
     _togglTokenController = TextEditingController();
+
+    _startTime = TextEditingController();
+    _startTimeFocusNode.addListener(() {
+      if (!_startTimeFocusNode.hasFocus) {
+        _startTime.text = parseHourMinutes(_startTime.text).pairToString();
+      }
+    });
+
+    _workingHours = TextEditingController();
+    _workingHoursFocusNode.addListener(() {
+      if (!_workingHoursFocusNode.hasFocus) {
+        _workingHours.text =
+            parseHourMinutes(_workingHours.text).pairToString();
+      }
+    });
 
     _readStoredState();
 
@@ -151,7 +175,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       case Step.setupToggl:
         return _stepToggleSetup();
       case Step.trackingSetup:
-        return _stepToggleSetup();
+        return _stepTrackingSetup();
     }
   }
 
@@ -328,9 +352,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
         ],
       ));
     } else {
-
-      if(_togglWorkspaceId != null && _togglWorkspace == null) {
-        _togglWorkspace = _togglProfile?.workspaces.firstWhereOrNull((element) => element.id == _togglWorkspaceId);
+      if (_togglWorkspaceId != null && _togglWorkspace == null) {
+        _togglWorkspace = _togglProfile?.workspaces
+            .firstWhereOrNull((element) => element.id == _togglWorkspaceId);
       }
 
       widgets.add(
@@ -357,9 +381,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
       );
 
       if (_togglWorkspace != null) {
-
-        if(_togglClientId != null && _togglClient == null) {
-          _togglClient = _togglProfile?.clients.firstWhereOrNull((element) => element.id == _togglClientId);
+        if (_togglClientId != null && _togglClient == null) {
+          _togglClient = _togglProfile?.clients
+              .firstWhereOrNull((element) => element.id == _togglClientId);
         }
 
         widgets.add(DropdownButtonFormField<Client>(
@@ -385,9 +409,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
       }
 
       if (_togglClient != null) {
-
-        if(_togglProjectId != null && _togglProject == null) {
-          _togglProject = _togglProfile?.projects.firstWhereOrNull((element) => element.id == _togglProjectId);
+        if (_togglProjectId != null && _togglProject == null) {
+          _togglProject = _togglProfile?.projects
+              .firstWhereOrNull((element) => element.id == _togglProjectId);
         }
 
         widgets.add(DropdownButtonFormField<Project>(
@@ -411,9 +435,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
       }
 
       if (_togglProject != null) {
-
-        if(_togglTagId != null && _togglTag == null) {
-          _togglTag = _togglProfile?.tags.firstWhereOrNull((element) => element.id == _togglTagId);
+        if (_togglTagId != null && _togglTag == null) {
+          _togglTag = _togglProfile?.tags
+              .firstWhereOrNull((element) => element.id == _togglTagId);
         }
 
         widgets.add(DropdownButtonFormField<Tag>(
@@ -460,6 +484,59 @@ class _ConfigScreenState extends State<ConfigScreen> {
     return widgets;
   }
 
+  List<Widget> _stepTrackingSetup() {
+
+
+
+    return [
+      Column(children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            SizedBox(
+                width: 400,
+                child: TextField(
+                  controller: _workingHours,
+                  focusNode: _workingHoursFocusNode,
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(), labelText: 'Working Hours'),
+                )),
+            SizedBox(
+                width: 400,
+                child: TextField(
+                  controller: _startTime,
+                  focusNode: _startTimeFocusNode,
+                  decoration: const InputDecoration(
+                      border: OutlineInputBorder(), labelText: 'Start Time'),
+                )),
+          ],
+        ),
+        ElevatedButton(
+            onPressed: () async {
+              var workingHours = parseHourMinutes(_workingHours.value.text);
+              var startTime = parseHourMinutes(_startTime.value.text);
+
+              if (workingHours != null) {
+                storage.write(
+                    Constants.keyWorkingHours, workingHours.first.toString());
+                storage.write(Constants.keyWorkingMinutes,
+                    workingHours.second.toString());
+              }
+
+              if (startTime != null) {
+                storage.write(
+                    Constants.keyStartingHours, startTime.first.toString());
+                storage.write(Constants.keyStartingMinutes,
+                    startTime.second.toString());
+              }
+
+              context.pushReplacementNamed(RouteName.panel);
+            },
+            child: const Text('Next'))
+      ])
+    ];
+  }
+
   Future<void> _readStoredState() async {
     var jiraEndpoint = await storage.read(Constants.keyJiraEndpoint);
     var jiraEmail = await storage.read(Constants.keyJiraEmail);
@@ -474,6 +551,34 @@ class _ConfigScreenState extends State<ConfigScreen> {
     _togglClientId = await storage.readIntOrNull(Constants.keyTogglClientId);
     _togglProjectId = await storage.readIntOrNull(Constants.keyTogglProjectId);
     _togglTagId = await storage.readIntOrNull(Constants.keyTogglTagId);
+
+    var workingHours = await storage.readIntOrNull(Constants.keyWorkingHours);
+    var workingMinutes = await storage.readIntOrNull(Constants.keyWorkingMinutes);
+
+    if (workingHours != null && workingMinutes != null) {
+      var workingHoursStr = Pair(workingHours, workingMinutes).pairToString();
+
+      _workingHours.value = TextEditingValue(
+        text: workingHoursStr,
+        selection: TextSelection.fromPosition(
+          TextPosition(offset: workingHoursStr.length),
+        ),
+      );
+    }
+
+    var startingHours = await storage.readIntOrNull(Constants.keyStartingHours);
+    var startingMinutes = await storage.readIntOrNull(Constants.keyStartingMinutes);
+
+    if (startingHours != null && startingMinutes != null) {
+      var startingTimeStr = Pair(startingHours, startingMinutes).pairToString();
+
+      _startTime.value = TextEditingValue(
+        text: startingTimeStr,
+        selection: TextSelection.fromPosition(
+          TextPosition(offset: startingTimeStr.length),
+        ),
+      );
+    }
 
     if (jiraEndpoint != null) {
       _jiraEndpointController.value = TextEditingValue(

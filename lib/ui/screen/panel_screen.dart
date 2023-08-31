@@ -9,6 +9,7 @@ import 'package:time_track_transfer/main.dart';
 import 'package:intl/intl.dart';
 import 'package:time_track_transfer/ui/model/date_issues.dart';
 import 'package:time_track_transfer/ui/widget/text_styles.dart';
+import 'package:time_track_transfer/util/pair.dart';
 import 'package:time_track_transfer/util/working_days.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -31,6 +32,9 @@ class _PanelScreenState extends State<PanelScreen> {
 
   final List<DateIssues> _dateIssues = [];
 
+  late Pair<int, int> _workingHours;
+  late Pair<int, int> _startTime;
+
   @override
   void initState() {
     _readStoredState();
@@ -47,6 +51,22 @@ class _PanelScreenState extends State<PanelScreen> {
     if (status != null) {
       _jiraStatusId = status;
     }
+
+    var workingHours = await storage.readIntOrNull(Constants.keyWorkingHours);
+    var workingMinutes =
+        await storage.readIntOrNull(Constants.keyWorkingMinutes);
+
+    if (workingHours != null && workingMinutes != null) {
+      _workingHours = Pair(workingHours, workingMinutes);
+    }
+
+    var startingHours = await storage.readIntOrNull(Constants.keyStartingHours);
+    var startingMinutes =
+        await storage.readIntOrNull(Constants.keyStartingMinutes);
+
+    if (startingHours != null && startingMinutes != null) {
+      _startTime = Pair(startingHours, startingMinutes);
+    }
   }
 
   Future<void> searchIssues() async {
@@ -58,8 +78,11 @@ class _PanelScreenState extends State<PanelScreen> {
     if (firstDay != null && lastDay != null) {
       for (var element in getWorkingDaysBetweenDates(firstDay, lastDay)) {
         var formattedDate = formatter.format(element);
-        var issues = await _jiraApi.search(_jiraProjectId, _jiraStatusId, formattedDate);
-        _dateIssues.add(DateIssues(element, issues));
+        var issues =
+            await _jiraApi.search(_jiraProjectId, _jiraStatusId, formattedDate);
+        var dateIssues = DateIssues(element, issues);
+        dateIssues.calculatePeriods(_workingHours, _startTime);
+        _dateIssues.add(dateIssues);
         setState(() {});
       }
     }
@@ -97,7 +120,7 @@ class _PanelScreenState extends State<PanelScreen> {
                       Checkbox(
                           value: item.isSelected,
                           onChanged: (value) {
-                            if (item.issues.isEmpty){
+                            if (item.issues.isEmpty) {
                               return;
                             }
                             setState(() {
@@ -108,7 +131,6 @@ class _PanelScreenState extends State<PanelScreen> {
                     ],
                   ),
                   Column(
-
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: _dateIssuesWidgets(item.issues),
                   )
@@ -126,11 +148,31 @@ class _PanelScreenState extends State<PanelScreen> {
     List<Widget> list = [];
 
     for (var element in issues) {
-      list.add(TextButton(
-          onPressed: () {
-            _openUrl("${_jiraApi.jiraEndpoint}/browse/${element.key}");
-          },
-          child: Text("${element.key} ${element.fields.summary}")));
+      list.add(
+        ListTile(
+          title: TextButton(
+            onPressed: () {
+              _openUrl("${_jiraApi.jiraEndpoint}/browse/${element.key}");
+            },
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                  textAlign: TextAlign.start,
+                  "${element.key} ${element.fields.summary}"),
+            ),
+          ),
+          trailing: SizedBox(
+            width: 100,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(DateFormat.Hm().format(element.start)),
+                Text(DateFormat.Hm().format(element.end))
+              ],
+            ),
+          ),
+        ),
+      );
     }
 
     return list;

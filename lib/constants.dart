@@ -17,4 +17,9 @@ class Constants {
   static const String keyTogglClientId = "TogglClientId";
   static const String keyTogglProjectId = "TogglProjectId";
   static const String keyTogglTagId = "TogglTagId";
+
+  static const String keyWorkingHours = "WorkingHours";
+  static const String keyWorkingMinutes = "WorkingMinutes";
+  static const String keyStartingHours = "StartingHours";
+  static const String keyStartingMinutes = "StartingMinutes";
 }
