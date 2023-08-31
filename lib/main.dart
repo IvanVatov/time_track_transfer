@@ -1,5 +1,7 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/di.dart';
@@ -10,7 +12,17 @@ import 'package:time_track_transfer/util/Storage.dart';
 
 const storage = Storage();
 
-class MyHttpOverrides extends HttpOverrides {
+final Dio client = Dio()
+  ..httpClientAdapter =
+  IOHttpClientAdapter(onHttpClientCreate: (client) {
+    client.findProxy = (uri) {
+      return 'PROXY localhost:8888';
+    };
+    return client;
+  });
+
+
+class TrustAllCertsOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
@@ -21,7 +33,7 @@ class MyHttpOverrides extends HttpOverrides {
 
 void main() {
 
-  HttpOverrides.global = MyHttpOverrides();
+  HttpOverrides.global = TrustAllCertsOverrides();
 
   configureDependencies();
 

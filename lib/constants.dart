@@ -9,5 +9,12 @@ class Constants {
   static const String keyJiraEmail = "JiraEmail";
   static const String keyJiraToken = "JiraToken";
   static const String keyJiraProjectId = "JiraProjectId";
-  static const String keyJiraStatus = "JiraStatus";
+  static const String keyJiraStatusId = "JiraStatusId";
+  static const String keyJiraTaskName = "JiraTaskName";
+
+  static const String keyTogglToken = "TogglToken";
+  static const String keyTogglWorkspaceId = "TogglWorkspaceId";
+  static const String keyTogglClientId = "TogglClientId";
+  static const String keyTogglProjectId = "TogglProjectId";
+  static const String keyTogglTagId = "TogglTagId";
 }

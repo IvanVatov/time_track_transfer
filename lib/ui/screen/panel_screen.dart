@@ -26,8 +26,8 @@ class _PanelScreenState extends State<PanelScreen> {
 
   List<DateTime?> _dates = [];
 
-  late String _projectId;
-  late String _status;
+  late String _jiraProjectId;
+  late String _jiraStatusId;
 
   final List<DateIssues> _dateIssues = [];
 
@@ -39,13 +39,13 @@ class _PanelScreenState extends State<PanelScreen> {
 
   Future<void> _readStoredState() async {
     var projectId = await storage.read(Constants.keyJiraProjectId);
-    var status = await storage.read(Constants.keyJiraStatus);
+    var status = await storage.read(Constants.keyJiraStatusId);
 
     if (projectId != null) {
-      _projectId = projectId;
+      _jiraProjectId = projectId;
     }
     if (status != null) {
-      _status = status;
+      _jiraStatusId = status;
     }
   }
 
@@ -58,7 +58,7 @@ class _PanelScreenState extends State<PanelScreen> {
     if (firstDay != null && lastDay != null) {
       for (var element in getWorkingDaysBetweenDates(firstDay, lastDay)) {
         var formattedDate = formatter.format(element);
-        var issues = await _jiraApi.search(_projectId, _status, formattedDate);
+        var issues = await _jiraApi.search(_jiraProjectId, _jiraStatusId, formattedDate);
         _dateIssues.add(DateIssues(element, issues));
         setState(() {});
       }
