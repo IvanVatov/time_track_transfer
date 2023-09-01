@@ -30,7 +30,7 @@ class TogglApi {
 
   Future<Response> postTimeEntries(int workspaceId, Object data) async {
     Response response = await client.post(
-        "https://api.track.toggl.com/api/v9/workspaces/$workspaceId}/time_entries",
+        "https://api.track.toggl.com/api/v9/workspaces/$workspaceId/time_entries",
         options: _getHeaderOptions(),
     data: data);
 

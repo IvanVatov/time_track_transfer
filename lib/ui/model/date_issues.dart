@@ -31,7 +31,7 @@ class DateIssues {
 
     for (var element in issues) {
       element.start = nextTime;
-
+      element.duration = workPerIssue * 60;
       nextTime = nextTime.add(Duration(minutes: workPerIssue));
 
       element.end = nextTime;
@@ -39,8 +39,9 @@ class DateIssues {
 
     var shouldAdd = workingMinutes - (workPerIssue * issues.length);
     if (shouldAdd > 0) {
-      issues.lastOrNull?.end =
-          issues.last.end.add(Duration(minutes: shouldAdd));
+      var lastIssue = issues.lastOrNull;
+      lastIssue?.duration += shouldAdd * 60;
+      lastIssue?.end = issues.last.end.add(Duration(minutes: shouldAdd));
     }
   }
 }

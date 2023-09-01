@@ -15,6 +15,8 @@ class JiraIssue {
   @JsonKey(includeFromJson: false, includeToJson: false)
   late DateTime end;
   @JsonKey(includeFromJson: false, includeToJson: false)
+  late int duration;
+  @JsonKey(includeFromJson: false, includeToJson: false)
   bool isPosted = false;
 
   JiraIssue(this.id, this.self, this.key, this.fields);

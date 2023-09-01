@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/api/configuration.dart';
 import 'package:time_track_transfer/api/jira/jira_issue.dart';
 import 'package:time_track_transfer/api/jira_api.dart';
+import 'package:time_track_transfer/api/toggl_api.dart';
 import 'package:time_track_transfer/constants.dart';
 import 'package:time_track_transfer/di.dart';
 import 'package:time_track_transfer/main.dart';
@@ -27,6 +28,7 @@ class PanelScreen extends StatefulWidget {
 
 class _PanelScreenState extends State<PanelScreen> {
   final JiraApi _jiraApi = getIt<JiraApi>();
+  final TogglApi _togglApi = getIt<TogglApi>();
 
   late Configuration _configuration;
 
@@ -42,11 +44,43 @@ class _PanelScreenState extends State<PanelScreen> {
 
   Future<void> _readConfiguration() async {
     var configurationJson = await storage.read(Constants.keyConfiguration);
-    _configuration =
-        Configuration.fromJson(json.decode(configurationJson!) as Map<String, dynamic>);
+    _configuration = Configuration.fromJson(
+        json.decode(configurationJson!) as Map<String, dynamic>);
   }
 
-  // Future<void> _
+  Future<void> _postTimeEntries() async {
+    var workspace = _configuration.togglWorkspace!;
+    var project = _configuration.togglProject!;
+    var tag = _configuration.togglTag!;
+
+    var formatter = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", 'en-US');
+
+    for (var element in _dateIssues) {
+      if (!element.isSelected) {
+        continue;
+      }
+
+      for (var issue in element.issues) {
+        var data = {
+          "billable": true,
+          "created_with": "TimeTrackTransfer",
+          "description": "${issue.key} ${issue.fields.summary}",
+          "duration": issue.duration,
+          "project_id": project.id,
+          "start": formatter.format(issue.start.toUtc()),
+          "tag_ids": [tag.id],
+          "tags": [tag.name],
+          "workspace_id": workspace.id
+        };
+
+        await _togglApi.postTimeEntries(workspace.id, data);
+
+        issue.isPosted = true;
+
+        setState(() {});
+      }
+    }
+  }
 
   Future<void> searchIssues() async {
     var firstDay = _dates.first;
@@ -83,7 +117,7 @@ class _PanelScreenState extends State<PanelScreen> {
               icon: const Icon(Icons.calendar_month)),
           IconButton(
               onPressed: () {
-                //TODO: !!!!! _();
+                _postTimeEntries();
               },
               icon: const Icon(Icons.upload)),
           IconButton(
@@ -136,6 +170,10 @@ class _PanelScreenState extends State<PanelScreen> {
     List<Widget> list = [];
 
     for (var element in issues) {
+      TextStyle style = const TextStyle();
+      if (element.isPosted) {
+        style = const TextStyle(color: Colors.green);
+      }
       list.add(
         ListTile(
           title: TextButton(
@@ -146,6 +184,7 @@ class _PanelScreenState extends State<PanelScreen> {
               alignment: Alignment.centerLeft,
               child: Text(
                   textAlign: TextAlign.start,
+                  style : style,
                   "${element.key} ${element.fields.summary}"),
             ),
           ),
