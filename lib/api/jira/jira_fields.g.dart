@@ -1,15 +1,16 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'fields.dart';
+part of 'jira_fields.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-Fields _$FieldsFromJson(Map<String, dynamic> json) => Fields(
+JiraFields _$JiraFieldsFromJson(Map<String, dynamic> json) => JiraFields(
       json['summary'] as String,
     );
 
-Map<String, dynamic> _$FieldsToJson(Fields instance) => <String, dynamic>{
+Map<String, dynamic> _$JiraFieldsToJson(JiraFields instance) =>
+    <String, dynamic>{
       'summary': instance.summary,
     };

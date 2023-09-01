@@ -1,19 +1,19 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'search_response.dart';
+part of 'jira_search_response.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-SearchResponse _$SearchResponseFromJson(Map<String, dynamic> json) =>
-    SearchResponse(
+JiraSearchResponse _$JiraSearchResponseFromJson(Map<String, dynamic> json) =>
+    JiraSearchResponse(
       (json['issues'] as List<dynamic>)
-          .map((e) => Issue.fromJson(e as Map<String, dynamic>))
+          .map((e) => JiraIssue.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
 
-Map<String, dynamic> _$SearchResponseToJson(SearchResponse instance) =>
+Map<String, dynamic> _$JiraSearchResponseToJson(JiraSearchResponse instance) =>
     <String, dynamic>{
       'issues': instance.issues,
     };

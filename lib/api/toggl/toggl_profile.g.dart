@@ -10,16 +10,16 @@ TogglProfile _$TogglProfileFromJson(Map<String, dynamic> json) => TogglProfile(
       json['fullname'] as String,
       json['default_workspace_id'] as int,
       (json['tags'] as List<dynamic>)
-          .map((e) => Tag.fromJson(e as Map<String, dynamic>))
+          .map((e) => TogglTag.fromJson(e as Map<String, dynamic>))
           .toList(),
       (json['clients'] as List<dynamic>)
-          .map((e) => Client.fromJson(e as Map<String, dynamic>))
+          .map((e) => TogglClient.fromJson(e as Map<String, dynamic>))
           .toList(),
       (json['projects'] as List<dynamic>)
-          .map((e) => Project.fromJson(e as Map<String, dynamic>))
+          .map((e) => TogglProject.fromJson(e as Map<String, dynamic>))
           .toList(),
       (json['workspaces'] as List<dynamic>)
-          .map((e) => Workspace.fromJson(e as Map<String, dynamic>))
+          .map((e) => TogglWorkspace.fromJson(e as Map<String, dynamic>))
           .toList(),
     );
 

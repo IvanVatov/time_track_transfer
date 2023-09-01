@@ -1,14 +1,14 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:time_track_transfer/api/jira/fields.dart';
+import 'package:time_track_transfer/api/jira/jira_fields.dart';
 
-part 'issue.g.dart';
+part 'jira_issue.g.dart';
 
 @JsonSerializable()
-class Issue {
+class JiraIssue {
   String id;
   String self;
   String key;
-  Fields fields;
+  JiraFields fields;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
   late DateTime start;
@@ -17,11 +17,11 @@ class Issue {
   @JsonKey(includeFromJson: false, includeToJson: false)
   bool isPosted = false;
 
-  Issue(this.id, this.self, this.key, this.fields);
+  JiraIssue(this.id, this.self, this.key, this.fields);
 
-  factory Issue.fromJson(Map<String, dynamic> json) => _$IssueFromJson(json);
+  factory JiraIssue.fromJson(Map<String, dynamic> json) => _$JiraIssueFromJson(json);
 
-  Map<String, dynamic> toJson() => _$IssueToJson(
+  Map<String, dynamic> toJson() => _$JiraIssueToJson(
         this,
       );
 }

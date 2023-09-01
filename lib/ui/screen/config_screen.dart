@@ -1,14 +1,17 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:time_track_transfer/api/configuration.dart';
 import 'package:time_track_transfer/api/jira/jira_project.dart';
-import 'package:time_track_transfer/api/jira/status.dart';
-import 'package:time_track_transfer/api/jira/task.dart';
+import 'package:time_track_transfer/api/jira/jira_status.dart';
+import 'package:time_track_transfer/api/jira/jira_task.dart';
 import 'package:time_track_transfer/api/jira_api.dart';
-import 'package:time_track_transfer/api/toggl/client.dart';
-import 'package:time_track_transfer/api/toggl/project.dart';
-import 'package:time_track_transfer/api/toggl/tag.dart';
+import 'package:time_track_transfer/api/toggl/toggl_client.dart';
+import 'package:time_track_transfer/api/toggl/toggl_project.dart';
+import 'package:time_track_transfer/api/toggl/toggl_tag.dart';
 import 'package:time_track_transfer/api/toggl/toggl_profile.dart';
-import 'package:time_track_transfer/api/toggl/workspace.dart';
+import 'package:time_track_transfer/api/toggl/toggl_workspace.dart';
 import 'package:time_track_transfer/api/toggl_api.dart';
 import 'package:time_track_transfer/di.dart';
 import 'package:time_track_transfer/main.dart';
@@ -34,32 +37,35 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   Step _step = Step.setupJira;
 
+  Configuration? _configuration;
+
   List<JiraProject>? _jiraProjects;
 
-  JiraProject? _projectSelection;
-  String? _jiraProjectId;
+  //
+  // JiraProject? _projectSelection;
+  // String? _jiraProjectId;
 
-  List<Task>? _projectTasks;
+  List<JiraTask>? _projectTasks;
 
-  Task? _taskSelection;
-  String? _jiraTaskName;
+  // JiraTask? _taskSelection;
+  // String? _jiraTaskName;
 
-  Status? _statusSelection;
-  String? _jiraStatusId;
+  // JiraStatus? _statusSelection;
+  // String? _jiraStatusId;
 
   TogglProfile? _togglProfile;
 
-  Workspace? _togglWorkspace;
-  int? _togglWorkspaceId;
-
-  Client? _togglClient;
-  int? _togglClientId;
-
-  Project? _togglProject;
-  int? _togglProjectId;
-
-  Tag? _togglTag;
-  int? _togglTagId;
+  // TogglWorkspace? _togglWorkspace;
+  // int? _togglWorkspaceId;
+  //
+  // TogglClient? _togglClient;
+  // int? _togglClientId;
+  //
+  // TogglProject? _togglProject;
+  // int? _togglProjectId;
+  //
+  // TogglTag? _togglTag;
+  // int? _togglTagId;
 
   late TextEditingController _jiraEndpointController;
   late TextEditingController _jiraEmailController;
@@ -96,7 +102,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       }
     });
 
-    _readStoredState();
+    _readConfiguration();
 
     super.initState();
   }
@@ -105,8 +111,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
     try {
       var result = await _jiraApi.getProjects();
       for (var element in result) {
-        if (element.id == _jiraProjectId) {
-          _projectSelection = element;
+        if (element.id == _configuration?.jiraProject?.id) {
+          _configuration?.jiraProject = element;
         }
       }
       setState(() {
@@ -114,10 +120,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
         _step = Step.selectProject;
       });
 
-      storage.write(
-          Constants.keyJiraEndpoint, _jiraEndpointController.value.text);
-      storage.write(Constants.keyJiraEmail, _jiraEmailController.value.text);
-      storage.write(Constants.keyJiraToken, _jiraTokenController.value.text);
+      _configuration?.jiraEndpoint = _jiraEndpointController.value.text;
+      _configuration?.jiraEmail = _jiraEmailController.value.text;
+      _configuration?.jiraToken = _jiraTokenController.value.text;
     } catch (t) {
       t;
     }
@@ -125,7 +130,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   Future<void> getStatuses() async {
     try {
-      var result = await _jiraApi.getStatuses(_jiraProjectId!);
+      var result = await _jiraApi.getStatuses(_configuration!.jiraProject!.id);
 
       setState(() {
         _projectTasks = result;
@@ -204,9 +209,11 @@ class _ConfigScreenState extends State<ConfigScreen> {
           ),
           ElevatedButton(
               onPressed: () {
-                _jiraApi.jiraEndpoint = _jiraEndpointController.value.text;
-                _jiraApi.jiraEmail = _jiraEmailController.value.text;
-                _jiraApi.jiraToken = _jiraTokenController.value.text;
+                _configuration?.jiraEndpoint = _jiraEndpointController.value.text;
+                _configuration?.jiraEmail = _jiraEmailController.value.text;
+                _configuration?.jiraToken = _jiraTokenController.value.text;
+
+                _jiraApi.configuration = _configuration!;
                 getJiraProjects();
               },
               child: const Text('Next'))
@@ -220,7 +227,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       Column(
         children: [
           DropdownButtonFormField<JiraProject>(
-            value: _projectSelection,
+            value: _configuration?.jiraProject,
             items: _jiraProjects!
                 .map<DropdownMenuItem<JiraProject>>((JiraProject value) {
               return DropdownMenuItem<JiraProject>(
@@ -231,23 +238,19 @@ class _ConfigScreenState extends State<ConfigScreen> {
             decoration: const InputDecoration(border: OutlineInputBorder()),
             hint: const Text("Select Something"),
             onChanged: (JiraProject? newValue) {
-              setState(() async {
-                if (newValue != _projectSelection) {
-                  _jiraStatusId = null;
-                  _jiraTaskName = null;
-                  storage.delete(Constants.keyJiraStatusId);
-                  storage.delete(Constants.keyJiraTaskName);
+              setState(() {
+                if (newValue != _configuration?.jiraProject) {
+                  _configuration?.jiraStatus = null;
+                  _configuration?.jiraTask = null;
                 }
-                _projectSelection = newValue!;
+                _configuration?.jiraProject = newValue!;
               });
             },
           ),
           ElevatedButton(
               onPressed: () {
                 setState(() {
-                  _jiraProjectId = _projectSelection?.id;
-                  storage.write(
-                      Constants.keyJiraProjectId, _projectSelection!.id);
+                  _saveConfiguration();
                   getStatuses();
                 });
               },
@@ -260,63 +263,54 @@ class _ConfigScreenState extends State<ConfigScreen> {
   List<Widget> _stepSelectStatus() {
     List<Widget> children = [];
 
-    if (_jiraTaskName != null && _taskSelection == null) {
-      _taskSelection = _projectTasks
-          ?.firstWhereOrNull((element) => element.id == _jiraTaskName);
-    }
-
+    var current = _projectTasks?.firstWhereOrNull((element) => element.id == _configuration?.jiraTask?.id);
     children.add(
-      DropdownButtonFormField<Task>(
-        value: _taskSelection,
-        items: _projectTasks!.map<DropdownMenuItem<Task>>((Task value) {
-          return DropdownMenuItem<Task>(
+      DropdownButtonFormField<JiraTask>(
+        value: current,
+        items: _projectTasks!.map<DropdownMenuItem<JiraTask>>((JiraTask value) {
+          return DropdownMenuItem<JiraTask>(
             value: value,
             child: Text(value.name),
           );
         }).toList(),
         decoration: const InputDecoration(border: OutlineInputBorder()),
         hint: const Text("Select Task"),
-        onChanged: (Task? newValue) {
+        onChanged: (JiraTask? newValue) {
           setState(() {
-            if (newValue != _taskSelection) {
-              _jiraStatusId = null;
-              storage.delete(Constants.keyJiraStatusId);
+            if (newValue != _configuration?.jiraTask) {
+              _configuration?.jiraStatus = null;
             }
-            _taskSelection = newValue!;
+            _configuration?.jiraTask = newValue!;
           });
         },
       ),
     );
 
-    if (_taskSelection != null) {
-      if (_jiraStatusId != null && _statusSelection == null) {
-        _statusSelection = _taskSelection?.statuses
-            .firstWhereOrNull((element) => element.name == _jiraStatusId);
-      }
+    if (_configuration?.jiraTask != null) {
+      var current = _configuration?.jiraTask?.statuses.firstWhereOrNull((element) => element.id == _configuration?.jiraStatus?.id);
 
       children.add(
-        DropdownButtonFormField<Status>(
-          value: _statusSelection,
-          items: _taskSelection!.statuses
-              .map<DropdownMenuItem<Status>>((Status value) {
-            return DropdownMenuItem<Status>(
+        DropdownButtonFormField<JiraStatus>(
+          value: current,
+          items: _configuration!.jiraTask!.statuses
+              .map<DropdownMenuItem<JiraStatus>>((JiraStatus value) {
+            return DropdownMenuItem<JiraStatus>(
               value: value,
               child: Text(value.name),
             );
           }).toList(),
           decoration: const InputDecoration(border: OutlineInputBorder()),
           hint: const Text("Select Status"),
-          onChanged: (Status? newValue) {
+          onChanged: (JiraStatus? newValue) {
             setState(() {
-              _statusSelection = newValue!;
+              _configuration?.jiraStatus = newValue!;
             });
           },
         ),
       );
       children.add(ElevatedButton(
           onPressed: () {
-            storage.write(Constants.keyJiraTaskName, _taskSelection!.id);
-            storage.write(Constants.keyJiraStatusId, _statusSelection!.name);
+            _saveConfiguration();
             setState(() {
               _step = Step.setupToggl;
             });
@@ -345,149 +339,131 @@ class _ConfigScreenState extends State<ConfigScreen> {
           ),
           ElevatedButton(
               onPressed: () {
-                _togglApi.togglToken = _togglTokenController.value.text;
+                _configuration?.togglToken = _togglTokenController.value.text;
+                _togglApi.configuration = _configuration!;
                 _getTogglProfile();
               },
               child: const Text('Next'))
         ],
       ));
     } else {
-      if (_togglWorkspaceId != null && _togglWorkspace == null) {
-        _togglWorkspace = _togglProfile?.workspaces
-            .firstWhereOrNull((element) => element.id == _togglWorkspaceId);
-      }
+
+      var current = _togglProfile?.workspaces.firstWhereOrNull((element) => element.id == _configuration?.togglWorkspace?.id);
 
       widgets.add(
-        DropdownButtonFormField<Workspace>(
-          value: _togglWorkspace,
+        DropdownButtonFormField<TogglWorkspace>(
+          value: current,
           items: _togglProfile!.workspaces
-              .map<DropdownMenuItem<Workspace>>((Workspace value) {
-            return DropdownMenuItem<Workspace>(
+              .map<DropdownMenuItem<TogglWorkspace>>((TogglWorkspace value) {
+            return DropdownMenuItem<TogglWorkspace>(
               value: value,
               child: Text(value.name),
             );
           }).toList(),
           decoration: const InputDecoration(border: OutlineInputBorder()),
           hint: const Text("Select Something"),
-          onChanged: (Workspace? newValue) {
+          onChanged: (TogglWorkspace? newValue) {
             setState(() {
-              _togglWorkspace = newValue!;
-              _togglClient = null;
-              _togglProject = null;
-              _togglTag = null;
+              _configuration?.togglWorkspace = newValue!;
+              _configuration?.togglClient = null;
+              _configuration?.togglProject = null;
+              _configuration?.togglTag = null;
             });
           },
         ),
       );
 
-      if (_togglWorkspace != null) {
-        if (_togglClientId != null && _togglClient == null) {
-          _togglClient = _togglProfile?.clients
-              .firstWhereOrNull((element) => element.id == _togglClientId);
-        }
+      if (_configuration?.togglWorkspace != null) {
 
-        widgets.add(DropdownButtonFormField<Client>(
-          value: _togglClient,
+        var current = _togglProfile?.clients.firstWhereOrNull((element) => element.id == _configuration?.togglClient?.id);
+
+        widgets.add(DropdownButtonFormField<TogglClient>(
+          value: current,
           items: _togglProfile!.clients
-              .where((element) => element.wid == _togglWorkspace?.id)
-              .map<DropdownMenuItem<Client>>((Client value) {
-            return DropdownMenuItem<Client>(
+              .where((element) =>
+                  element.wid == _configuration?.togglWorkspace?.id)
+              .map<DropdownMenuItem<TogglClient>>((TogglClient value) {
+            return DropdownMenuItem<TogglClient>(
               value: value,
               child: Text(value.name),
             );
           }).toList(),
           decoration: const InputDecoration(border: OutlineInputBorder()),
           hint: const Text("Select Something"),
-          onChanged: (Client? newValue) {
+          onChanged: (TogglClient? newValue) {
             setState(() {
-              _togglClient = newValue;
-              _togglProject = null;
-              _togglTag = null;
+              _configuration?.togglClient = newValue;
+              _configuration?.togglProject = null;
+              _configuration?.togglTag = null;
             });
           },
         ));
       }
 
-      if (_togglClient != null) {
-        if (_togglProjectId != null && _togglProject == null) {
-          _togglProject = _togglProfile?.projects
-              .firstWhereOrNull((element) => element.id == _togglProjectId);
-        }
+      if (_configuration?.togglClient != null) {
 
-        widgets.add(DropdownButtonFormField<Project>(
-          value: _togglProject,
+        var current = _togglProfile?.projects.firstWhereOrNull((element) => element.id == _configuration?.togglProject?.id);
+
+        widgets.add(DropdownButtonFormField<TogglProject>(
+          value: current,
           items: _togglProfile!.projects
-              .map<DropdownMenuItem<Project>>((Project value) {
-            return DropdownMenuItem<Project>(
+              .map<DropdownMenuItem<TogglProject>>((TogglProject value) {
+            return DropdownMenuItem<TogglProject>(
               value: value,
               child: Text(value.name),
             );
           }).toList(),
           decoration: const InputDecoration(border: OutlineInputBorder()),
           hint: const Text("Select Something"),
-          onChanged: (Project? newValue) {
+          onChanged: (TogglProject? newValue) {
             setState(() {
-              _togglProject = newValue;
-              _togglTag = null;
+              _configuration?.togglProject = newValue;
+              _configuration?.togglTag = null;
             });
           },
         ));
       }
 
-      if (_togglProject != null) {
-        if (_togglTagId != null && _togglTag == null) {
-          _togglTag = _togglProfile?.tags
-              .firstWhereOrNull((element) => element.id == _togglTagId);
-        }
+      if (_configuration?.togglProject != null) {
 
-        widgets.add(DropdownButtonFormField<Tag>(
-          value: _togglTag,
+        var current = _togglProfile?.tags.firstWhereOrNull((element) => element.id == _configuration?.togglTag?.id);
+
+        widgets.add(DropdownButtonFormField<TogglTag>(
+          value: current,
           items: _togglProfile!.tags
-              .where((element) => element.workspaceId == _togglWorkspace?.id)
-              .map<DropdownMenuItem<Tag>>((Tag value) {
-            return DropdownMenuItem<Tag>(
+              .where((element) =>
+                  element.workspaceId == _configuration?.togglWorkspace?.id)
+              .map<DropdownMenuItem<TogglTag>>((TogglTag value) {
+            return DropdownMenuItem<TogglTag>(
               value: value,
               child: Text(value.name),
             );
           }).toList(),
           decoration: const InputDecoration(border: OutlineInputBorder()),
           hint: const Text("Select Something"),
-          onChanged: (Tag? newValue) {
+          onChanged: (TogglTag? newValue) {
             setState(() {
-              _togglTag = newValue;
+              _configuration?.togglTag = newValue;
             });
           },
         ));
       }
 
-      if (_togglTag != null) {
+      if (_configuration?.togglTag != null) {
         widgets.add(ElevatedButton(
             onPressed: () async {
-              storage.write(
-                  Constants.keyTogglToken, _togglTokenController.value.text);
-              storage.write(Constants.keyTogglWorkspaceId,
-                  _togglWorkspace!.id.toString());
-              storage.write(
-                  Constants.keyTogglClientId, _togglClient!.id.toString());
-              storage.write(
-                  Constants.keyTogglProjectId, _togglProject!.id.toString());
-              storage.write(Constants.keyTogglTagId, _togglTag!.id.toString());
-
               setState(() {
                 _step = Step.trackingSetup;
               });
             },
             child: const Text('Next')));
-      } // Tag? _togglTag;
+      }
     }
 
     return widgets;
   }
 
   List<Widget> _stepTrackingSetup() {
-
-
-
     return [
       Column(children: [
         Row(
@@ -516,19 +492,13 @@ class _ConfigScreenState extends State<ConfigScreen> {
               var workingHours = parseHourMinutes(_workingHours.value.text);
               var startTime = parseHourMinutes(_startTime.value.text);
 
-              if (workingHours != null) {
-                storage.write(
-                    Constants.keyWorkingHours, workingHours.first.toString());
-                storage.write(Constants.keyWorkingMinutes,
-                    workingHours.second.toString());
-              }
+              _configuration?.workingHours = workingHours?.first;
+              _configuration?.workingHoursMinutes = workingHours?.second;
 
-              if (startTime != null) {
-                storage.write(
-                    Constants.keyStartingHours, startTime.first.toString());
-                storage.write(Constants.keyStartingMinutes,
-                    startTime.second.toString());
-              }
+              _configuration?.startingHour = startTime?.first;
+              _configuration?.startingHourMinutes = startTime?.second;
+
+              _saveConfiguration();
 
               context.pushReplacementNamed(RouteName.panel);
             },
@@ -537,26 +507,42 @@ class _ConfigScreenState extends State<ConfigScreen> {
     ];
   }
 
-  Future<void> _readStoredState() async {
-    var jiraEndpoint = await storage.read(Constants.keyJiraEndpoint);
-    var jiraEmail = await storage.read(Constants.keyJiraEmail);
-    var jiraToken = await storage.read(Constants.keyJiraToken);
-    _jiraProjectId = await storage.read(Constants.keyJiraProjectId);
-    _jiraStatusId = await storage.read(Constants.keyJiraStatusId);
-    _jiraTaskName = await storage.read(Constants.keyJiraTaskName);
+  void _saveConfiguration() {
+    storage.write(Constants.keyConfiguration,
+        json.encode(_configuration!.toJson()));
+  }
 
-    var togglToken = await storage.read(Constants.keyTogglToken);
-    _togglWorkspaceId =
-        await storage.readIntOrNull(Constants.keyTogglWorkspaceId);
-    _togglClientId = await storage.readIntOrNull(Constants.keyTogglClientId);
-    _togglProjectId = await storage.readIntOrNull(Constants.keyTogglProjectId);
-    _togglTagId = await storage.readIntOrNull(Constants.keyTogglTagId);
+  Future<void> _readConfiguration() async {
+    var configurationJson = await storage.read(Constants.keyConfiguration);
 
-    var workingHours = await storage.readIntOrNull(Constants.keyWorkingHours);
-    var workingMinutes = await storage.readIntOrNull(Constants.keyWorkingMinutes);
+    if (configurationJson != null) {
+      _configuration =
+          Configuration.fromJson(json.decode(configurationJson) as Map<String, dynamic>);
+    } else {
+      _configuration = Configuration();
+    }
+
+    //
+    // var jiraEmail = await storage.read(Constants.keyJiraEmail);
+    // var jiraToken = await storage.read(Constants.keyJiraToken);
+    // _jiraProjectId = await storage.read(Constants.keyJiraProjectId);
+    // _jiraStatusId = await storage.read(Constants.keyJiraStatusId);
+    // _jiraTaskName = await storage.read(Constants.keyJiraTaskName);
+    //
+    // var togglToken = await storage.read(Constants.keyTogglToken);
+    // _togglWorkspaceId =
+    //     await storage.readIntOrNull(Constants.keyTogglWorkspaceId);
+    // _togglClientId = await storage.readIntOrNull(Constants.keyTogglClientId);
+    // _togglProjectId = await storage.readIntOrNull(Constants.keyTogglProjectId);
+    // _togglTagId = await storage.readIntOrNull(Constants.keyTogglTagId);
+    //
+    var workingHours = _configuration?.workingHours;
+    var workingMinutes = _configuration?.workingHoursMinutes;
 
     if (workingHours != null && workingMinutes != null) {
-      var workingHoursStr = Pair(workingHours, workingMinutes).pairToString();
+      var workingHoursStr = Pair(_configuration!.workingHours!,
+              _configuration!.workingHoursMinutes!)
+          .pairToString();
 
       _workingHours.value = TextEditingValue(
         text: workingHoursStr,
@@ -566,11 +552,12 @@ class _ConfigScreenState extends State<ConfigScreen> {
       );
     }
 
-    var startingHours = await storage.readIntOrNull(Constants.keyStartingHours);
-    var startingMinutes = await storage.readIntOrNull(Constants.keyStartingMinutes);
+    var startingHour = _configuration?.startingHour;
+    var startingHourMinutes = _configuration?.startingHourMinutes;
 
-    if (startingHours != null && startingMinutes != null) {
-      var startingTimeStr = Pair(startingHours, startingMinutes).pairToString();
+    if (startingHour != null && startingHourMinutes != null) {
+      var startingTimeStr =
+          Pair(startingHour, startingHourMinutes).pairToString();
 
       _startTime.value = TextEditingValue(
         text: startingTimeStr,
@@ -580,14 +567,16 @@ class _ConfigScreenState extends State<ConfigScreen> {
       );
     }
 
-    if (jiraEndpoint != null) {
+    if (_configuration?.jiraEndpoint != null) {
       _jiraEndpointController.value = TextEditingValue(
-        text: jiraEndpoint,
+        text: _configuration!.jiraEndpoint!,
         selection: TextSelection.fromPosition(
-          TextPosition(offset: jiraEndpoint.length),
+          TextPosition(offset: _configuration!.jiraEndpoint!.length),
         ),
       );
     }
+
+    var jiraEmail = _configuration?.jiraEmail;
 
     if (jiraEmail != null) {
       _jiraEmailController.value = TextEditingValue(
@@ -598,6 +587,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
       );
     }
 
+    var jiraToken = _configuration?.jiraToken;
+
     if (jiraToken != null) {
       _jiraTokenController.value = TextEditingValue(
         text: jiraToken,
@@ -606,6 +597,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
         ),
       );
     }
+
+    var togglToken = _configuration?.togglToken;
 
     if (togglToken != null) {
       _togglTokenController.value = TextEditingValue(

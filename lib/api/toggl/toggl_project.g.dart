@@ -1,12 +1,12 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'project.dart';
+part of 'toggl_project.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-Project _$ProjectFromJson(Map<String, dynamic> json) => Project(
+TogglProject _$TogglProjectFromJson(Map<String, dynamic> json) => TogglProject(
       json['id'] as int,
       json['workspace_id'] as int,
       json['name'] as String,
@@ -14,7 +14,8 @@ Project _$ProjectFromJson(Map<String, dynamic> json) => Project(
       json['billable'] as bool,
     );
 
-Map<String, dynamic> _$ProjectToJson(Project instance) => <String, dynamic>{
+Map<String, dynamic> _$TogglProjectToJson(TogglProject instance) =>
+    <String, dynamic>{
       'id': instance.id,
       'workspace_id': instance.workspaceId,
       'name': instance.name,

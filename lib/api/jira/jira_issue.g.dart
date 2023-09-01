@@ -1,19 +1,19 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'issue.dart';
+part of 'jira_issue.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-Issue _$IssueFromJson(Map<String, dynamic> json) => Issue(
+JiraIssue _$JiraIssueFromJson(Map<String, dynamic> json) => JiraIssue(
       json['id'] as String,
       json['self'] as String,
       json['key'] as String,
-      Fields.fromJson(json['fields'] as Map<String, dynamic>),
+      JiraFields.fromJson(json['fields'] as Map<String, dynamic>),
     );
 
-Map<String, dynamic> _$IssueToJson(Issue instance) => <String, dynamic>{
+Map<String, dynamic> _$JiraIssueToJson(JiraIssue instance) => <String, dynamic>{
       'id': instance.id,
       'self': instance.self,
       'key': instance.key,

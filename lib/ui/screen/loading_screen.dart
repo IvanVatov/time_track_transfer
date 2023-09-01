@@ -1,6 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:time_track_transfer/api/configuration.dart';
+import 'package:time_track_transfer/api/toggl_api.dart';
 import 'package:time_track_transfer/constants.dart';
 import 'package:time_track_transfer/di.dart';
 import 'package:time_track_transfer/api/jira_api.dart';
@@ -15,7 +19,8 @@ class LoadingScreen extends StatefulWidget {
 }
 
 class _LoadingScreenState extends State<LoadingScreen> {
-  final JiraApi jiraApi = getIt<JiraApi>();
+  final JiraApi _jiraApi = getIt<JiraApi>();
+  final TogglApi _togglApi = getIt<TogglApi>();
 
   @override
   void initState() {
@@ -30,20 +35,13 @@ class _LoadingScreenState extends State<LoadingScreen> {
   }
 
   Future<void> checkConfiguration(Function(bool) completion) async {
-    var jiraEndpoint = await storage.read(Constants.keyJiraEndpoint);
-    var jiraEmail = await storage.read(Constants.keyJiraEmail);
-    var jiraToken = await storage.read(Constants.keyJiraToken);
+    var configurationString = await storage.read(Constants.keyConfiguration);
 
-    if (jiraEndpoint != null &&
-        jiraEndpoint.isNotEmpty &&
-        jiraToken != null &&
-        jiraToken.isNotEmpty &&
-        jiraEmail != null &&
-        jiraEmail.isNotEmpty) {
-
-      jiraApi.jiraEndpoint = jiraEndpoint;
-      jiraApi.jiraEmail = jiraEmail;
-      jiraApi.jiraToken = jiraToken;
+    if (configurationString != null) {
+      var configuration =
+          Configuration.fromJson(json.decode(configurationString) as Map<String, dynamic>);
+      _jiraApi.configuration = configuration;
+      _togglApi.configuration = configuration;
 
       completion(true);
     } else {

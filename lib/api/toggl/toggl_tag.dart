@@ -1,22 +1,22 @@
 import 'package:json_annotation/json_annotation.dart';
 
-part 'tag.g.dart';
+part 'toggl_tag.g.dart';
 
 @JsonSerializable()
-class Tag {
+class TogglTag {
   int id;
   @JsonKey(name: 'workspace_id')
   int workspaceId;
   String name;
 
 
-  Tag(this.id, this.workspaceId, this.name);
+  TogglTag(this.id, this.workspaceId, this.name);
 
-  factory Tag.fromJson(Map<String, dynamic> json) =>
-      _$TagFromJson(json);
+  factory TogglTag.fromJson(Map<String, dynamic> json) =>
+      _$TogglTagFromJson(json);
 
   Map<String, dynamic> toJson() =>
-      _$TagToJson(
+      _$TogglTagToJson(
         this,
       );
 }

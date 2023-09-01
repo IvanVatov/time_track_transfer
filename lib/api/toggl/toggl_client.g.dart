@@ -1,19 +1,22 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'tag.dart';
+part of 'toggl_client.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-Tag _$TagFromJson(Map<String, dynamic> json) => Tag(
+TogglClient _$TogglClientFromJson(Map<String, dynamic> json) => TogglClient(
       json['id'] as int,
-      json['workspace_id'] as int,
+      json['wid'] as int,
+      json['archived'] as bool,
       json['name'] as String,
     );
 
-Map<String, dynamic> _$TagToJson(Tag instance) => <String, dynamic>{
+Map<String, dynamic> _$TogglClientToJson(TogglClient instance) =>
+    <String, dynamic>{
       'id': instance.id,
-      'workspace_id': instance.workspaceId,
+      'wid': instance.wid,
+      'archived': instance.archived,
       'name': instance.name,
     };

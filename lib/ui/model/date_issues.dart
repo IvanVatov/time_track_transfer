@@ -1,9 +1,9 @@
-import 'package:time_track_transfer/api/jira/issue.dart';
+import 'package:time_track_transfer/api/jira/jira_issue.dart';
 import 'package:time_track_transfer/util/pair.dart';
 
 class DateIssues {
   DateTime dateTime;
-  List<Issue> issues;
+  List<JiraIssue> issues;
 
   late bool isSelected;
 
@@ -12,6 +12,10 @@ class DateIssues {
   }
 
   void calculatePeriods(Pair<int, int> workingHours, Pair<int, int> startTime) {
+    if (issues.isEmpty) {
+      return;
+    }
+
     var workingMinutes = (workingHours.first * 60) + workingHours.second;
 
     var multiplayer = ((workingMinutes / 15) / issues.length).floor();

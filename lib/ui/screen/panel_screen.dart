@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:go_router/go_router.dart';
-import 'package:time_track_transfer/api/jira/issue.dart';
+import 'package:time_track_transfer/api/configuration.dart';
+import 'package:time_track_transfer/api/jira/jira_issue.dart';
 import 'package:time_track_transfer/api/jira_api.dart';
 import 'package:time_track_transfer/constants.dart';
 import 'package:time_track_transfer/di.dart';
@@ -25,49 +28,25 @@ class PanelScreen extends StatefulWidget {
 class _PanelScreenState extends State<PanelScreen> {
   final JiraApi _jiraApi = getIt<JiraApi>();
 
-  List<DateTime?> _dates = [];
+  late Configuration _configuration;
 
-  late String _jiraProjectId;
-  late String _jiraStatusId;
+  List<DateTime?> _dates = [];
 
   final List<DateIssues> _dateIssues = [];
 
-  late Pair<int, int> _workingHours;
-  late Pair<int, int> _startTime;
-
   @override
   void initState() {
-    _readStoredState();
+    _readConfiguration();
     super.initState();
   }
 
-  Future<void> _readStoredState() async {
-    var projectId = await storage.read(Constants.keyJiraProjectId);
-    var status = await storage.read(Constants.keyJiraStatusId);
-
-    if (projectId != null) {
-      _jiraProjectId = projectId;
-    }
-    if (status != null) {
-      _jiraStatusId = status;
-    }
-
-    var workingHours = await storage.readIntOrNull(Constants.keyWorkingHours);
-    var workingMinutes =
-        await storage.readIntOrNull(Constants.keyWorkingMinutes);
-
-    if (workingHours != null && workingMinutes != null) {
-      _workingHours = Pair(workingHours, workingMinutes);
-    }
-
-    var startingHours = await storage.readIntOrNull(Constants.keyStartingHours);
-    var startingMinutes =
-        await storage.readIntOrNull(Constants.keyStartingMinutes);
-
-    if (startingHours != null && startingMinutes != null) {
-      _startTime = Pair(startingHours, startingMinutes);
-    }
+  Future<void> _readConfiguration() async {
+    var configurationJson = await storage.read(Constants.keyConfiguration);
+    _configuration =
+        Configuration.fromJson(json.decode(configurationJson!) as Map<String, dynamic>);
   }
+
+  // Future<void> _
 
   Future<void> searchIssues() async {
     var firstDay = _dates.first;
@@ -78,10 +57,14 @@ class _PanelScreenState extends State<PanelScreen> {
     if (firstDay != null && lastDay != null) {
       for (var element in getWorkingDaysBetweenDates(firstDay, lastDay)) {
         var formattedDate = formatter.format(element);
-        var issues =
-            await _jiraApi.search(_jiraProjectId, _jiraStatusId, formattedDate);
+        var issues = await _jiraApi.search(_configuration.jiraProject!.id,
+            _configuration.jiraStatus!.name, formattedDate);
         var dateIssues = DateIssues(element, issues);
-        dateIssues.calculatePeriods(_workingHours, _startTime);
+        dateIssues.calculatePeriods(
+            Pair(_configuration.workingHours!,
+                _configuration.workingHoursMinutes!),
+            Pair(_configuration.startingHour!,
+                _configuration.startingHourMinutes!));
         _dateIssues.add(dateIssues);
         setState(() {});
       }
@@ -98,6 +81,11 @@ class _PanelScreenState extends State<PanelScreen> {
                 _showDatePickerDialog();
               },
               icon: const Icon(Icons.calendar_month)),
+          IconButton(
+              onPressed: () {
+                //TODO: !!!!! _();
+              },
+              icon: const Icon(Icons.upload)),
           IconButton(
               onPressed: () {
                 context.pushReplacementNamed(RouteName.config);
@@ -144,7 +132,7 @@ class _PanelScreenState extends State<PanelScreen> {
     );
   }
 
-  List<Widget> _dateIssuesWidgets(List<Issue> issues) {
+  List<Widget> _dateIssuesWidgets(List<JiraIssue> issues) {
     List<Widget> list = [];
 
     for (var element in issues) {
@@ -152,7 +140,7 @@ class _PanelScreenState extends State<PanelScreen> {
         ListTile(
           title: TextButton(
             onPressed: () {
-              _openUrl("${_jiraApi.jiraEndpoint}/browse/${element.key}");
+              _openUrl("${_configuration.jiraEndpoint}/browse/${element.key}");
             },
             child: Align(
               alignment: Alignment.centerLeft,
