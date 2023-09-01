@@ -1,6 +1,6 @@
 # time_track_transfer
 
-A project which allows you to transfer your time in Toggl.
+Web/Desktop app which allows you to transfer your Jira tickets as time records in Toggl.
 
 ## Getting Started
 
