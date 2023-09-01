@@ -79,6 +79,8 @@ class _PanelScreenState extends State<PanelScreen> {
 
         setState(() {});
       }
+
+      await Future.delayed(const Duration(seconds: 2));
     }
   }
 
