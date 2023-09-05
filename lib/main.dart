@@ -12,28 +12,28 @@ import 'package:time_track_transfer/util/Storage.dart';
 
 const storage = Storage();
 
-final Dio client = Dio()
-  ..httpClientAdapter =
-  IOHttpClientAdapter(onHttpClientCreate: (client) {
-    client.findProxy = (uri) {
-      return 'PROXY localhost:8888';
-    };
-    return client;
-  });
+final Dio client = Dio();
+  // ..httpClientAdapter =
+  // IOHttpClientAdapter(onHttpClientCreate: (client) {
+  //   client.findProxy = (uri) {
+  //     return 'PROXY localhost:8888';
+  //   };
+  //   return client;
+  // });
 
 
-class TrustAllCertsOverrides extends HttpOverrides {
-  @override
-  HttpClient createHttpClient(SecurityContext? context) {
-    return super.createHttpClient(context)
-      ..badCertificateCallback =
-          (X509Certificate cert, String host, int port) => true;
-  }
-}
+// class TrustAllCertsOverrides extends HttpOverrides {
+//   @override
+//   HttpClient createHttpClient(SecurityContext? context) {
+//     return super.createHttpClient(context)
+//       ..badCertificateCallback =
+//           (X509Certificate cert, String host, int port) => true;
+//   }
+// }
 
 void main() {
 
-  HttpOverrides.global = TrustAllCertsOverrides();
+  // HttpOverrides.global = TrustAllCertsOverrides();
 
   configureDependencies();
 

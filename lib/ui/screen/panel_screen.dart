@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:go_router/go_router.dart';
@@ -184,7 +185,7 @@ class _PanelScreenState extends State<PanelScreen> {
       TextStyle style = const TextStyle();
       if (element.isPosted) {
         style = const TextStyle(color: Colors.green);
-      } else if (!element.isSelected){
+      } else if (!element.isSelected) {
         style = const TextStyle(color: Colors.blueGrey);
       }
 
@@ -204,6 +205,13 @@ class _PanelScreenState extends State<PanelScreen> {
                 value: element.isSelected,
                 onChanged: (value) {
                   element.isSelected = !element.isSelected;
+                  if (element.isSelected) {
+                    dateIssues.isSelected = true;
+                  } else {
+                    dateIssues.isSelected = dateIssues.issues.firstWhereOrNull(
+                            (element) => element.isSelected) !=
+                        null;
+                  }
                   dateIssues.calculatePeriods(startTimePair, workingHoursPair);
                   setState(() {});
                 }),
