@@ -1,6 +1,6 @@
 # time_track_transfer
 
-Web/Desktop app which allows you to transfer your Jira tickets as time records in Toggl.
+Windows Flutter app which allows you to transfer your Jira tickets as time records in Toggl.
 
 ## Getting Started
 
