@@ -17,6 +17,6 @@ void main() {
 
     dateIssues.calculatePeriods(Pair(8, 0), Pair(9, 0));
 
-    expect(dateIssues.issues.last.end.hour, 17);
+    expect(dateIssues.issues.last.end?.hour, 17);
   });
 }

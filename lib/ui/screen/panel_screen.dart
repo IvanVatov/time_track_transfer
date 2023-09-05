@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/api/configuration.dart';
-import 'package:time_track_transfer/api/jira/jira_issue.dart';
 import 'package:time_track_transfer/api/jira_api.dart';
 import 'package:time_track_transfer/api/toggl_api.dart';
 import 'package:time_track_transfer/constants.dart';
@@ -34,7 +33,10 @@ class _PanelScreenState extends State<PanelScreen> {
 
   List<DateTime?> _dates = [];
 
-  final List<DateIssues> _dateIssues = [];
+  final List<DateIssues> _dateIssuesList = [];
+
+  late Pair<int, int> workingHoursPair;
+  late Pair<int, int> startTimePair;
 
   @override
   void initState() {
@@ -46,6 +48,11 @@ class _PanelScreenState extends State<PanelScreen> {
     var configurationJson = await storage.read(Constants.keyConfiguration);
     _configuration = Configuration.fromJson(
         json.decode(configurationJson!) as Map<String, dynamic>);
+
+    workingHoursPair =
+        Pair(_configuration.workingHours!, _configuration.workingHoursMinutes!);
+    startTimePair =
+        Pair(_configuration.startingHour!, _configuration.startingHourMinutes!);
   }
 
   Future<void> _postTimeEntries() async {
@@ -55,32 +62,34 @@ class _PanelScreenState extends State<PanelScreen> {
 
     var formatter = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", 'en-US');
 
-    for (var element in _dateIssues) {
+    for (var element in _dateIssuesList) {
       if (!element.isSelected) {
         continue;
       }
 
       for (var issue in element.issues) {
-        var data = {
-          "billable": true,
-          "created_with": "TimeTrackTransfer",
-          "description": "${issue.key} ${issue.fields.summary}",
-          "duration": issue.duration,
-          "project_id": project.id,
-          "start": formatter.format(issue.start.toUtc()),
-          "tag_ids": [tag.id],
-          "tags": [tag.name],
-          "workspace_id": workspace.id
-        };
+        if (issue.isSelected) {
+          var data = {
+            "billable": true,
+            "created_with": "TimeTrackTransfer",
+            "description": "${issue.key} ${issue.fields.summary}",
+            "duration": issue.duration,
+            "project_id": project.id,
+            "start": formatter.format(issue.start!.toUtc()),
+            "tag_ids": [tag.id],
+            "tags": [tag.name],
+            "workspace_id": workspace.id
+          };
 
-        await _togglApi.postTimeEntries(workspace.id, data);
+          await _togglApi.postTimeEntries(workspace.id, data);
 
-        issue.isPosted = true;
+          issue.isPosted = true;
 
-        setState(() {});
+          setState(() {});
+        }
+
+        await Future.delayed(const Duration(seconds: 2));
       }
-
-      await Future.delayed(const Duration(seconds: 2));
     }
   }
 
@@ -88,7 +97,7 @@ class _PanelScreenState extends State<PanelScreen> {
     var firstDay = _dates.first;
     var lastDay = _dates.last;
 
-    _dateIssues.clear();
+    _dateIssuesList.clear();
 
     if (firstDay != null && lastDay != null) {
       for (var element in getWorkingDaysBetweenDates(firstDay, lastDay)) {
@@ -96,12 +105,8 @@ class _PanelScreenState extends State<PanelScreen> {
         var issues = await _jiraApi.search(_configuration.jiraProject!.id,
             _configuration.jiraStatus!.name, formattedDate);
         var dateIssues = DateIssues(element, issues);
-        dateIssues.calculatePeriods(
-            Pair(_configuration.workingHours!,
-                _configuration.workingHoursMinutes!),
-            Pair(_configuration.startingHour!,
-                _configuration.startingHourMinutes!));
-        _dateIssues.add(dateIssues);
+        dateIssues.calculatePeriods(workingHoursPair, startTimePair);
+        _dateIssuesList.add(dateIssues);
         setState(() {});
       }
     }
@@ -133,7 +138,7 @@ class _PanelScreenState extends State<PanelScreen> {
         padding: const EdgeInsets.all(24),
         child: ListView.builder(
           itemBuilder: (context, position) {
-            var item = _dateIssues[position];
+            var item = _dateIssuesList[position];
             return Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -147,8 +152,12 @@ class _PanelScreenState extends State<PanelScreen> {
                             if (item.issues.isEmpty) {
                               return;
                             }
+
                             setState(() {
                               item.isSelected = !item.isSelected;
+                              for (var element in item.issues) {
+                                element.isSelected = item.isSelected;
+                              }
                             });
                           }),
                       Heading18(text: DateFormat.yMEd().format(item.dateTime))
@@ -156,48 +165,67 @@ class _PanelScreenState extends State<PanelScreen> {
                   ),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: _dateIssuesWidgets(item.issues),
+                    children: _dateIssuesWidgets(item),
                   )
                 ],
               ),
             );
           },
-          itemCount: _dateIssues.length,
+          itemCount: _dateIssuesList.length,
         ),
       ),
     );
   }
 
-  List<Widget> _dateIssuesWidgets(List<JiraIssue> issues) {
+  List<Widget> _dateIssuesWidgets(DateIssues dateIssues) {
     List<Widget> list = [];
 
-    for (var element in issues) {
+    for (var element in dateIssues.issues) {
       TextStyle style = const TextStyle();
       if (element.isPosted) {
         style = const TextStyle(color: Colors.green);
+      } else if (!element.isSelected){
+        style = const TextStyle(color: Colors.blueGrey);
       }
+
+      var startText = "--:--";
+      if (element.start != null) {
+        startText = DateFormat.Hm().format(element.start!);
+      }
+      var endText = "--:--";
+      if (element.end != null) {
+        endText = DateFormat.Hm().format(element.end!);
+      }
+
       list.add(
         ListTile(
-          title: TextButton(
-            onPressed: () {
-              _openUrl("${_configuration.jiraEndpoint}/browse/${element.key}");
-            },
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                  textAlign: TextAlign.start,
-                  style : style,
-                  "${element.key} ${element.fields.summary}"),
-            ),
-          ),
+          title: Row(children: [
+            Checkbox(
+                value: element.isSelected,
+                onChanged: (value) {
+                  element.isSelected = !element.isSelected;
+                  dateIssues.calculatePeriods(startTimePair, workingHoursPair);
+                  setState(() {});
+                }),
+            TextButton(
+              onPressed: () {
+                _openUrl(
+                    "${_configuration.jiraEndpoint}/browse/${element.key}");
+              },
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                    textAlign: TextAlign.start,
+                    style: style,
+                    "${element.key} ${element.fields.summary}"),
+              ),
+            )
+          ]),
           trailing: SizedBox(
             width: 100,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(DateFormat.Hm().format(element.start)),
-                Text(DateFormat.Hm().format(element.end))
-              ],
+              children: [Text(startText), Text(endText)],
             ),
           ),
         ),

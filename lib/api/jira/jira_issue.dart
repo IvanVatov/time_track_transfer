@@ -11,13 +11,15 @@ class JiraIssue {
   JiraFields fields;
 
   @JsonKey(includeFromJson: false, includeToJson: false)
-  late DateTime start;
+  late DateTime? start;
   @JsonKey(includeFromJson: false, includeToJson: false)
-  late DateTime end;
+  late DateTime? end;
   @JsonKey(includeFromJson: false, includeToJson: false)
   late int duration;
   @JsonKey(includeFromJson: false, includeToJson: false)
   bool isPosted = false;
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  bool isSelected = true;
 
   JiraIssue(this.id, this.self, this.key, this.fields);
 
