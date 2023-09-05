@@ -210,6 +210,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
             decoration: const InputDecoration(
                 border: OutlineInputBorder(), labelText: 'Jira API token'),
           ),
+          const SizedBox(height: 16),
           ElevatedButton(
               onPressed: () {
                 _configuration?.jiraEndpoint = _jiraEndpointController.value.text;
@@ -250,6 +251,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
               });
             },
           ),
+          const SizedBox(height: 16),
           ElevatedButton(
               onPressed: () {
                 setState(() {
@@ -311,6 +313,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
           },
         ),
       );
+      children.add(const SizedBox(height: 16));
       children.add(ElevatedButton(
           onPressed: () {
             _saveConfiguration();
@@ -340,6 +343,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
             decoration: const InputDecoration(
                 border: OutlineInputBorder(), labelText: 'Toggl token'),
           ),
+          const SizedBox(height: 16),
           ElevatedButton(
               onPressed: () {
                 _configuration?.togglToken = _togglTokenController.value.text;
@@ -453,6 +457,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       }
 
       if (_configuration?.togglTag != null) {
+        widgets.add(const SizedBox(height: 16));
         widgets.add(ElevatedButton(
             onPressed: () async {
               setState(() {
@@ -490,6 +495,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 )),
           ],
         ),
+        const SizedBox(height: 16),
         ElevatedButton(
             onPressed: () async {
               var workingHours = parseHourMinutes(_workingHours.value.text);
