@@ -11,7 +11,7 @@ TogglProject _$TogglProjectFromJson(Map<String, dynamic> json) => TogglProject(
       json['workspace_id'] as int,
       json['name'] as String,
       json['active'] as bool,
-      json['billable'] as bool,
+      json['billable'] as bool? ?? false,
     );
 
 Map<String, dynamic> _$TogglProjectToJson(TogglProject instance) =>

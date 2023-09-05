@@ -9,6 +9,7 @@ class TogglProject {
   int workspaceId;
   String name;
   bool active;
+  @JsonKey(defaultValue: false)
   bool billable;
 
 

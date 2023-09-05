@@ -145,6 +145,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
     try {
       var result = await _togglApi.getTogglProfile();
 
+
+      var nullableBillable = result.projects.where((element) => element.billable == null || element.active == null);
+
       setState(() {
         _togglProfile = result;
       });

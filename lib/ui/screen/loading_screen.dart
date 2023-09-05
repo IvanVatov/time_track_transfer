@@ -38,12 +38,16 @@ class _LoadingScreenState extends State<LoadingScreen> {
     var configurationString = await storage.read(Constants.keyConfiguration);
 
     if (configurationString != null) {
-      var configuration =
-          Configuration.fromJson(json.decode(configurationString) as Map<String, dynamic>);
-      _jiraApi.configuration = configuration;
-      _togglApi.configuration = configuration;
-
-      completion(true);
+      try {
+        var configuration = Configuration.fromJson(
+            json.decode(configurationString) as Map<String, dynamic>);
+        _jiraApi.configuration = configuration;
+        _togglApi.configuration = configuration;
+        completion(true);
+      } catch (e) {
+        await storage.delete(Constants.keyConfiguration);
+        completion(false);
+      }
     } else {
       completion(false);
     }
