@@ -58,7 +58,7 @@ class DateIssues {
       }
     }
 
-    var shouldAdd = workingMinutes - (workPerIssue * issues.length);
+    var shouldAdd = workingMinutes - (workPerIssue * length);
     if (shouldAdd > 0) {
       var lastIssue = issues.lastWhereOrNull((element) => element.isSelected);
       lastIssue?.duration += shouldAdd * 60;

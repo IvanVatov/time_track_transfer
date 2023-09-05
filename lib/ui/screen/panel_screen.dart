@@ -36,8 +36,8 @@ class _PanelScreenState extends State<PanelScreen> {
 
   final List<DateIssues> _dateIssuesList = [];
 
-  late Pair<int, int> workingHoursPair;
-  late Pair<int, int> startTimePair;
+  late Pair<int, int> _workingHoursPair;
+  late Pair<int, int> _startTimePair;
 
   @override
   void initState() {
@@ -50,9 +50,9 @@ class _PanelScreenState extends State<PanelScreen> {
     _configuration = Configuration.fromJson(
         json.decode(configurationJson!) as Map<String, dynamic>);
 
-    workingHoursPair =
+    _workingHoursPair =
         Pair(_configuration.workingHours!, _configuration.workingHoursMinutes!);
-    startTimePair =
+    _startTimePair =
         Pair(_configuration.startingHour!, _configuration.startingHourMinutes!);
   }
 
@@ -106,7 +106,7 @@ class _PanelScreenState extends State<PanelScreen> {
         var issues = await _jiraApi.search(_configuration.jiraProject!.id,
             _configuration.jiraStatus!.name, formattedDate);
         var dateIssues = DateIssues(element, issues);
-        dateIssues.calculatePeriods(workingHoursPair, startTimePair);
+        dateIssues.calculatePeriods(_workingHoursPair, _startTimePair);
         _dateIssuesList.add(dateIssues);
         setState(() {});
       }
@@ -159,6 +159,7 @@ class _PanelScreenState extends State<PanelScreen> {
                               for (var element in item.issues) {
                                 element.isSelected = item.isSelected;
                               }
+                              item.calculatePeriods(_workingHoursPair, _startTimePair);
                             });
                           }),
                       Heading18(text: DateFormat.yMEd().format(item.dateTime))
@@ -212,7 +213,7 @@ class _PanelScreenState extends State<PanelScreen> {
                             (element) => element.isSelected) !=
                         null;
                   }
-                  dateIssues.calculatePeriods(startTimePair, workingHoursPair);
+                  dateIssues.calculatePeriods(_startTimePair, _workingHoursPair);
                   setState(() {});
                 }),
             TextButton(
