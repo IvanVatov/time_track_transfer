@@ -140,6 +140,10 @@ class _PanelScreenState extends State<PanelScreen> {
         child: ListView.builder(
           itemBuilder: (context, position) {
             var item = _dateIssuesList[position];
+            Color? color;
+            if (!item.isSelected) {
+              color = Colors.blueGrey;
+            }
             return Card(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,10 +163,13 @@ class _PanelScreenState extends State<PanelScreen> {
                               for (var element in item.issues) {
                                 element.isSelected = item.isSelected;
                               }
-                              item.calculatePeriods(_workingHoursPair, _startTimePair);
+                              item.calculatePeriods(
+                                  _workingHoursPair, _startTimePair);
                             });
                           }),
-                      Heading18(text: DateFormat.yMEd().format(item.dateTime))
+                      Heading18(
+                          text: DateFormat.yMEd().format(item.dateTime),
+                          color: color)
                     ],
                   ),
                   Column(
@@ -213,7 +220,8 @@ class _PanelScreenState extends State<PanelScreen> {
                             (element) => element.isSelected) !=
                         null;
                   }
-                  dateIssues.calculatePeriods(_startTimePair, _workingHoursPair);
+                  dateIssues.calculatePeriods(
+                      _startTimePair, _workingHoursPair);
                   setState(() {});
                 }),
             TextButton(

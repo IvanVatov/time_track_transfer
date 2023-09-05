@@ -16,16 +16,19 @@ class Heading24 extends StatelessWidget {
 }
 
 class Heading18 extends StatelessWidget {
-  const Heading18({Key? key, required this.text}) : super(key: key);
+  const Heading18({Key? key, required this.text, this.color}) : super(key: key);
 
   final String text;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-          color: Colors.deepPurple, fontSize: 18, fontWeight: FontWeight.w600),
+      style: TextStyle(
+          color: color ?? Colors.deepPurple,
+          fontSize: 18,
+          fontWeight: FontWeight.w600),
     );
   }
 }
