@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/api/configuration.dart';
@@ -61,6 +62,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   JiraAuthorization _jiraAuthorization = JiraAuthorization.basic;
 
+  String? _error;
+
   @override
   void initState() {
     _jiraEndpointController = TextEditingController();
@@ -90,6 +93,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
   }
 
   Future<void> getJiraProjects() async {
+    clearError();
     try {
       var result = await _jiraApi.getProjects();
       for (var element in result) {
@@ -101,25 +105,26 @@ class _ConfigScreenState extends State<ConfigScreen> {
         _jiraProjects = result;
         _step = Step.selectProject;
       });
-    } catch (t) {
-      t;
+    } catch (e) {
+      setError(e);
     }
   }
 
   Future<void> getStatuses() async {
+    clearError();
     try {
       var result = await _jiraApi.getStatuses(_configuration!.jiraProject!.id);
-
       setState(() {
         _projectTasks = result;
         _step = Step.selectStatus;
       });
-    } catch (t) {
-      t;
+    } catch (e) {
+      setError(e);
     }
   }
 
   Future<void> _getTogglProfile() async {
+    clearError();
     try {
       var result = await _togglApi.getTogglProfile();
 
@@ -129,19 +134,46 @@ class _ConfigScreenState extends State<ConfigScreen> {
       setState(() {
         _togglProfile = result;
       });
-    } catch (t) {
-      print(t);
+    } catch (e) {
+      setError(e);
     }
+  }
+
+  void setError(Object e) {
+    setState(() {
+      _error = e.toString();
+      if (e is DioException) {
+        _error = "$_error\n${e.response?.data}";
+      }
+    });
+  }
+
+  void clearError() {
+    setState(() {
+      _error = null;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> childrenList;
+    if (_error != null) {
+      List<Widget> mList = [];
+      mList.add(Heading18(text: _error!, color: Colors.red));
+      mList.add(const SizedBox(height: 16));
+      mList.addAll(_buildWidgets());
+      childrenList = mList;
+    } else {
+      childrenList = _buildWidgets();
+    }
+
     return Scaffold(
       appBar: AppBar(
         actions: [
           IconButton(
               onPressed: () async {
                 await storage.delete(Constants.keyConfiguration);
+                _step = Step.setupJira;
                 _readConfiguration();
               },
               icon: const Icon(Icons.highlight_remove))
@@ -153,7 +185,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
           spacing: 20,
           runSpacing: 20,
           alignment: WrapAlignment.center,
-          children: _buildWidgets(),
+          children: childrenList,
         ),
       ),
     );

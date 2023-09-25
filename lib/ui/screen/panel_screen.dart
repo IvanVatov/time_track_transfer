@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:collection/collection.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:calendar_date_picker2/calendar_date_picker2.dart';
 import 'package:go_router/go_router.dart';
@@ -39,6 +40,8 @@ class _PanelScreenState extends State<PanelScreen> {
   late Pair<int, int> _workingHoursPair;
   late Pair<int, int> _startTimePair;
 
+  String? error;
+
   @override
   void initState() {
     _readConfiguration();
@@ -63,34 +66,39 @@ class _PanelScreenState extends State<PanelScreen> {
 
     var formatter = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", 'en-US');
 
-    for (var element in _dateIssuesList) {
-      if (!element.isSelected) {
-        continue;
-      }
-
-      for (var issue in element.issues) {
-        if (issue.isSelected) {
-          var data = {
-            "billable": true,
-            "created_with": "TimeTrackTransfer",
-            "description": "${issue.key} ${issue.fields.summary}",
-            "duration": issue.duration,
-            "project_id": project.id,
-            "start": formatter.format(issue.start!.toUtc()),
-            "tag_ids": [tag.id],
-            "tags": [tag.name],
-            "workspace_id": workspace.id
-          };
-
-          await _togglApi.postTimeEntries(workspace.id, data);
-
-          issue.isPosted = true;
-
-          setState(() {});
+    clearError();
+    try {
+      for (var element in _dateIssuesList) {
+        if (!element.isSelected) {
+          continue;
         }
 
-        await Future.delayed(const Duration(seconds: 2));
+        for (var issue in element.issues) {
+          if (issue.isSelected) {
+            var data = {
+              "billable": true,
+              "created_with": "TimeTrackTransfer",
+              "description": "${issue.key} ${issue.fields.summary}",
+              "duration": issue.duration,
+              "project_id": project.id,
+              "start": formatter.format(issue.start!.toUtc()),
+              "tag_ids": [tag.id],
+              "tags": [tag.name],
+              "workspace_id": workspace.id
+            };
+
+            await _togglApi.postTimeEntries(workspace.id, data);
+
+            issue.isPosted = true;
+
+            setState(() {});
+          }
+
+          await Future.delayed(const Duration(seconds: 2));
+        }
       }
+    } catch (e) {
+      setError(e);
     }
   }
 
@@ -101,20 +109,46 @@ class _PanelScreenState extends State<PanelScreen> {
     _dateIssuesList.clear();
 
     if (firstDay != null && lastDay != null) {
-      for (var element in getWorkingDaysBetweenDates(firstDay, lastDay)) {
-        var formattedDate = formatter.format(element);
-        var issues = await _jiraApi.search(_configuration.jiraProject!.id,
-            _configuration.jiraStatus!.name, formattedDate);
-        var dateIssues = DateIssues(element, issues);
-        dateIssues.calculatePeriods(_workingHoursPair, _startTimePair);
-        _dateIssuesList.add(dateIssues);
-        setState(() {});
+      clearError();
+      try {
+        for (var element in getWorkingDaysBetweenDates(firstDay, lastDay)) {
+          var formattedDate = formatter.format(element);
+          var issues = await _jiraApi.search(_configuration.jiraProject!.id,
+              _configuration.jiraStatus!.name, formattedDate);
+          var dateIssues = DateIssues(element, issues);
+          dateIssues.calculatePeriods(_workingHoursPair, _startTimePair);
+          _dateIssuesList.add(dateIssues);
+          setState(() {});
+        }
+      } catch (e) {
+        setError(e);
       }
     }
   }
 
+  void setError(Object e) {
+    setState(() {
+      error = e.toString();
+      if (e is DioException) {
+        error = "$error\n${e.response?.data}";
+      }
+    });
+  }
+
+  void clearError() {
+    setState(() {
+      error = null;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    var listSize = _dateIssuesList.length;
+
+    if (error != null) {
+      listSize++;
+    }
+
     return Scaffold(
       appBar: AppBar(
         actions: [
@@ -139,6 +173,9 @@ class _PanelScreenState extends State<PanelScreen> {
         padding: const EdgeInsets.all(24),
         child: ListView.builder(
           itemBuilder: (context, position) {
+            if (position == _dateIssuesList.length) {
+              return Heading18(text: error!, color: Colors.red);
+            }
             var item = _dateIssuesList[position];
             Color? color;
             if (!item.isSelected) {
@@ -180,7 +217,7 @@ class _PanelScreenState extends State<PanelScreen> {
               ),
             );
           },
-          itemCount: _dateIssuesList.length,
+          itemCount: listSize,
         ),
       ),
     );
