@@ -11,6 +11,7 @@ Configuration _$ConfigurationFromJson(Map<String, dynamic> json) =>
       ..jiraEndpoint = json['jiraEndpoint'] as String?
       ..jiraEmail = json['jiraEmail'] as String?
       ..jiraToken = json['jiraToken'] as String?
+      ..jiraIsBasic = json['jiraIsBasic'] as bool?
       ..togglToken = json['togglToken'] as String?
       ..jiraProject = json['jiraProject'] == null
           ? null
@@ -44,6 +45,7 @@ Map<String, dynamic> _$ConfigurationToJson(Configuration instance) =>
       'jiraEndpoint': instance.jiraEndpoint,
       'jiraEmail': instance.jiraEmail,
       'jiraToken': instance.jiraToken,
+      'jiraIsBasic': instance.jiraIsBasic,
       'togglToken': instance.togglToken,
       'jiraProject': instance.jiraProject,
       'jiraStatus': instance.jiraStatus,

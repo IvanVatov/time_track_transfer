@@ -13,20 +13,24 @@ import 'package:time_track_transfer/main.dart';
 
 @Singleton()
 class JiraApi {
-
   late Configuration configuration;
 
   JiraApi();
 
   Options _getHeaderOptions() {
-    return Options(headers: {
-      Constants.keyAuthorization:
-          "${Constants.keyBasic} ${base64Encode(utf8.encode("${configuration.jiraEmail}:${configuration.jiraToken}"))}"
-    });
+    String authorization;
+    if (configuration.jiraIsBasic == true) {
+      authorization = "Bearer ${configuration.jiraToken}";
+    } else {
+      authorization =
+          "${Constants.keyBasic} ${base64Encode(utf8.encode("${configuration.jiraEmail}:${configuration.jiraToken}"))}";
+    }
+    return Options(headers: {Constants.keyAuthorization: authorization});
   }
 
   Future<List<JiraProject>> getProjects() async {
-    Response response = await client.get("${configuration.jiraEndpoint}/rest/api/2/project",
+    Response response = await client.get(
+        "${configuration.jiraEndpoint}/rest/api/2/project",
         options: _getHeaderOptions());
 
     return (response.data as List)
@@ -44,12 +48,15 @@ class JiraApi {
         .toList(growable: false);
   }
 
-  Future<List<JiraIssue>> search(String projectId, String status, String date) async {
-    Response response = await client.post("${configuration.jiraEndpoint}/rest/api/2/search",
+  Future<List<JiraIssue>> search(
+      String projectId, String status, String date) async {
+    Response response = await client.post(
+        "${configuration.jiraEndpoint}/rest/api/2/search",
         options: _getHeaderOptions(),
         data:
             "{\"jql\":\"project = $projectId AND assignee was currentUser() on '$date' AND status was '$status' on '$date'\", \"fields\":[\"key\", \"summary\"]}");
 
-    return JiraSearchResponse.fromJson(response.data as Map<String, dynamic>).issues;
+    return JiraSearchResponse.fromJson(response.data as Map<String, dynamic>)
+        .issues;
   }
 }

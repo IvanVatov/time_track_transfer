@@ -30,6 +30,8 @@ class ConfigScreen extends StatefulWidget {
 
 enum Step { setupJira, selectProject, selectStatus, setupToggl, trackingSetup }
 
+enum JiraAuthorization { basic, bearer }
+
 class _ConfigScreenState extends State<ConfigScreen> {
   final JiraApi _jiraApi = getIt<JiraApi>();
 
@@ -79,6 +81,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
   final FocusNode _startTimeFocusNode = FocusNode();
   late TextEditingController _startTime;
 
+  JiraAuthorization _jiraAuthorization = JiraAuthorization.basic;
+
   @override
   void initState() {
     _jiraEndpointController = TextEditingController();
@@ -123,6 +127,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       _configuration?.jiraEndpoint = _jiraEndpointController.value.text;
       _configuration?.jiraEmail = _jiraEmailController.value.text;
       _configuration?.jiraToken = _jiraTokenController.value.text;
+      _configuration?.jiraIsBasic = _jiraAuthorization == JiraAuthorization.basic;
     } catch (t) {
       t;
     }
@@ -145,8 +150,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
     try {
       var result = await _togglApi.getTogglProfile();
 
-
-      var nullableBillable = result.projects.where((element) => element.billable == null || element.active == null);
+      var nullableBillable = result.projects.where(
+          (element) => element.billable == null || element.active == null);
 
       setState(() {
         _togglProfile = result;
@@ -159,7 +164,16 @@ class _ConfigScreenState extends State<ConfigScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(),
+      appBar: AppBar(
+        actions: [
+          IconButton(
+              onPressed: () async {
+                storage.delete(Constants.keyConfiguration);
+                _readConfiguration();
+              },
+              icon: const Icon(Icons.highlight_remove))
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(24),
         child: Wrap(
@@ -211,11 +225,42 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 border: OutlineInputBorder(), labelText: 'Jira API token'),
           ),
           const SizedBox(height: 16),
+          Column(
+            children: <Widget>[
+              ListTile(
+                title: const Text('Basic'),
+                leading: Radio<JiraAuthorization>(
+                  value: JiraAuthorization.basic,
+                  groupValue: _jiraAuthorization,
+                  onChanged: (JiraAuthorization? value) {
+                    setState(() {
+                      if (value != null) _jiraAuthorization = value;
+                    });
+                  },
+                ),
+              ),
+              ListTile(
+                title: const Text('Bearer'),
+                leading: Radio<JiraAuthorization>(
+                  value: JiraAuthorization.bearer,
+                  groupValue: _jiraAuthorization,
+                  onChanged: (JiraAuthorization? value) {
+                    setState(() {
+                      if (value != null) _jiraAuthorization = value;
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
           ElevatedButton(
               onPressed: () {
-                _configuration?.jiraEndpoint = _jiraEndpointController.value.text;
+                _configuration?.jiraEndpoint =
+                    _jiraEndpointController.value.text;
                 _configuration?.jiraEmail = _jiraEmailController.value.text;
                 _configuration?.jiraToken = _jiraTokenController.value.text;
+                _configuration?.jiraIsBasic = _jiraAuthorization == JiraAuthorization.basic;
 
                 _jiraApi.configuration = _configuration!;
                 getJiraProjects();
@@ -268,7 +313,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
   List<Widget> _stepSelectStatus() {
     List<Widget> children = [];
 
-    var current = _projectTasks?.firstWhereOrNull((element) => element.id == _configuration?.jiraTask?.id);
+    var current = _projectTasks?.firstWhereOrNull(
+        (element) => element.id == _configuration?.jiraTask?.id);
     children.add(
       DropdownButtonFormField<JiraTask>(
         value: current,
@@ -292,7 +338,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
     );
 
     if (_configuration?.jiraTask != null) {
-      var current = _configuration?.jiraTask?.statuses.firstWhereOrNull((element) => element.id == _configuration?.jiraStatus?.id);
+      var current = _configuration?.jiraTask?.statuses.firstWhereOrNull(
+          (element) => element.id == _configuration?.jiraStatus?.id);
 
       children.add(
         DropdownButtonFormField<JiraStatus>(
@@ -354,8 +401,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
         ],
       ));
     } else {
-
-      var current = _togglProfile?.workspaces.firstWhereOrNull((element) => element.id == _configuration?.togglWorkspace?.id);
+      var current = _togglProfile?.workspaces.firstWhereOrNull(
+          (element) => element.id == _configuration?.togglWorkspace?.id);
 
       widgets.add(
         DropdownButtonFormField<TogglWorkspace>(
@@ -381,8 +428,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
       );
 
       if (_configuration?.togglWorkspace != null) {
-
-        var current = _togglProfile?.clients.firstWhereOrNull((element) => element.id == _configuration?.togglClient?.id);
+        var current = _togglProfile?.clients.firstWhereOrNull(
+            (element) => element.id == _configuration?.togglClient?.id);
 
         widgets.add(DropdownButtonFormField<TogglClient>(
           value: current,
@@ -408,8 +455,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
       }
 
       if (_configuration?.togglClient != null) {
-
-        var current = _togglProfile?.projects.firstWhereOrNull((element) => element.id == _configuration?.togglProject?.id);
+        var current = _togglProfile?.projects.firstWhereOrNull(
+            (element) => element.id == _configuration?.togglProject?.id);
 
         widgets.add(DropdownButtonFormField<TogglProject>(
           value: current,
@@ -432,8 +479,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
       }
 
       if (_configuration?.togglProject != null) {
-
-        var current = _togglProfile?.tags.firstWhereOrNull((element) => element.id == _configuration?.togglTag?.id);
+        var current = _togglProfile?.tags.firstWhereOrNull(
+            (element) => element.id == _configuration?.togglTag?.id);
 
         widgets.add(DropdownButtonFormField<TogglTag>(
           value: current,
@@ -517,16 +564,16 @@ class _ConfigScreenState extends State<ConfigScreen> {
   }
 
   void _saveConfiguration() {
-    storage.write(Constants.keyConfiguration,
-        json.encode(_configuration!.toJson()));
+    storage.write(
+        Constants.keyConfiguration, json.encode(_configuration!.toJson()));
   }
 
   Future<void> _readConfiguration() async {
     var configurationJson = await storage.read(Constants.keyConfiguration);
 
     if (configurationJson != null) {
-      _configuration =
-          Configuration.fromJson(json.decode(configurationJson) as Map<String, dynamic>);
+      _configuration = Configuration.fromJson(
+          json.decode(configurationJson) as Map<String, dynamic>);
     } else {
       _configuration = Configuration();
     }
