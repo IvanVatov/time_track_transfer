@@ -1,5 +1,3 @@
-import 'dart:ffi';
-
 import 'package:json_annotation/json_annotation.dart';
 import 'package:time_track_transfer/api/jira/jira_project.dart';
 import 'package:time_track_transfer/api/jira/jira_status.dart';
