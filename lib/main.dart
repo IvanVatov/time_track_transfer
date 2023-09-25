@@ -81,7 +81,7 @@ class TimeTrackTransfer extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       routerConfig: routerConfig,
-      title: 'Flutter Demo',
+      title: 'Time Track Transfer',
       theme: ThemeData(
         // This is the theme of your application.
         //

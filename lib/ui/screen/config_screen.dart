@@ -43,31 +43,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   List<JiraProject>? _jiraProjects;
 
-  //
-  // JiraProject? _projectSelection;
-  // String? _jiraProjectId;
-
   List<JiraTask>? _projectTasks;
 
-  // JiraTask? _taskSelection;
-  // String? _jiraTaskName;
-
-  // JiraStatus? _statusSelection;
-  // String? _jiraStatusId;
-
   TogglProfile? _togglProfile;
-
-  // TogglWorkspace? _togglWorkspace;
-  // int? _togglWorkspaceId;
-  //
-  // TogglClient? _togglClient;
-  // int? _togglClientId;
-  //
-  // TogglProject? _togglProject;
-  // int? _togglProjectId;
-  //
-  // TogglTag? _togglTag;
-  // int? _togglTagId;
 
   late TextEditingController _jiraEndpointController;
   late TextEditingController _jiraEmailController;
@@ -123,11 +101,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
         _jiraProjects = result;
         _step = Step.selectProject;
       });
-
-      _configuration?.jiraEndpoint = _jiraEndpointController.value.text;
-      _configuration?.jiraEmail = _jiraEmailController.value.text;
-      _configuration?.jiraToken = _jiraTokenController.value.text;
-      _configuration?.jiraIsBasic = _jiraAuthorization == JiraAuthorization.basic;
     } catch (t) {
       t;
     }
@@ -168,7 +141,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
         actions: [
           IconButton(
               onPressed: () async {
-                storage.delete(Constants.keyConfiguration);
+                await storage.delete(Constants.keyConfiguration);
                 _readConfiguration();
               },
               icon: const Icon(Icons.highlight_remove))
@@ -256,11 +229,14 @@ class _ConfigScreenState extends State<ConfigScreen> {
           const SizedBox(height: 16),
           ElevatedButton(
               onPressed: () {
+                Uri jiraUri = Uri.parse(_jiraEndpointController.value.text);
+
                 _configuration?.jiraEndpoint =
-                    _jiraEndpointController.value.text;
+                    "${jiraUri.scheme}://${jiraUri.host.toString()}";
                 _configuration?.jiraEmail = _jiraEmailController.value.text;
                 _configuration?.jiraToken = _jiraTokenController.value.text;
-                _configuration?.jiraIsBasic = _jiraAuthorization == JiraAuthorization.basic;
+                _configuration?.jiraIsBasic =
+                    _jiraAuthorization == JiraAuthorization.basic;
 
                 _jiraApi.configuration = _configuration!;
                 getJiraProjects();
@@ -578,20 +554,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
       _configuration = Configuration();
     }
 
-    //
-    // var jiraEmail = await storage.read(Constants.keyJiraEmail);
-    // var jiraToken = await storage.read(Constants.keyJiraToken);
-    // _jiraProjectId = await storage.read(Constants.keyJiraProjectId);
-    // _jiraStatusId = await storage.read(Constants.keyJiraStatusId);
-    // _jiraTaskName = await storage.read(Constants.keyJiraTaskName);
-    //
-    // var togglToken = await storage.read(Constants.keyTogglToken);
-    // _togglWorkspaceId =
-    //     await storage.readIntOrNull(Constants.keyTogglWorkspaceId);
-    // _togglClientId = await storage.readIntOrNull(Constants.keyTogglClientId);
-    // _togglProjectId = await storage.readIntOrNull(Constants.keyTogglProjectId);
-    // _togglTagId = await storage.readIntOrNull(Constants.keyTogglTagId);
-    //
     var workingHours = _configuration?.workingHours;
     var workingMinutes = _configuration?.workingHoursMinutes;
 
@@ -606,6 +568,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           TextPosition(offset: workingHoursStr.length),
         ),
       );
+    } else {
+      _workingHours.clear();
     }
 
     var startingHour = _configuration?.startingHour;
@@ -621,6 +585,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           TextPosition(offset: startingTimeStr.length),
         ),
       );
+    } else {
+      _startTime.clear();
     }
 
     if (_configuration?.jiraEndpoint != null) {
@@ -630,6 +596,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           TextPosition(offset: _configuration!.jiraEndpoint!.length),
         ),
       );
+    } else {
+      _jiraEndpointController.clear();
     }
 
     var jiraEmail = _configuration?.jiraEmail;
@@ -641,6 +609,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           TextPosition(offset: jiraEmail.length),
         ),
       );
+    } else {
+      _jiraEmailController.clear();
     }
 
     var jiraToken = _configuration?.jiraToken;
@@ -652,6 +622,15 @@ class _ConfigScreenState extends State<ConfigScreen> {
           TextPosition(offset: jiraToken.length),
         ),
       );
+    } else {
+      _jiraTokenController.clear();
+    }
+
+    var jiraIsBasic = _configuration?.jiraIsBasic;
+    if (jiraIsBasic != null && jiraIsBasic) {
+      _jiraAuthorization = JiraAuthorization.basic;
+    } else {
+      _jiraAuthorization = JiraAuthorization.bearer;
     }
 
     var togglToken = _configuration?.togglToken;
@@ -663,6 +642,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
           TextPosition(offset: togglToken.length),
         ),
       );
+    } else {
+      _togglTokenController.clear();
     }
+    setState(() {});
   }
 }

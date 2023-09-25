@@ -20,7 +20,7 @@ class JiraApi {
   Options _getHeaderOptions() {
     String authorization;
     if (configuration.jiraIsBasic == true) {
-      authorization = "Bearer ${configuration.jiraToken}";
+      authorization = "${Constants.keyBearer} ${configuration.jiraToken}";
     } else {
       authorization =
           "${Constants.keyBasic} ${base64Encode(utf8.encode("${configuration.jiraEmail}:${configuration.jiraToken}"))}";
