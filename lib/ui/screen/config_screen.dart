@@ -469,6 +469,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
         widgets.add(DropdownButtonFormField<TogglProject>(
           value: current,
           items: _togglProfile!.projects
+              .where((element) =>
+                  element.workspaceId == _configuration?.togglWorkspace?.id)
               .map<DropdownMenuItem<TogglProject>>((TogglProject value) {
             return DropdownMenuItem<TogglProject>(
               value: value,
