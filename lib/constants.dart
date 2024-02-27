@@ -6,4 +6,5 @@ class Constants {
   static const String keyBearer = "Bearer";
 
   static const String keyConfiguration = "Configuration";
+  static const String keyWriteResponses = "WriteResponses";
 }

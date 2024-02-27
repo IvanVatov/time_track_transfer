@@ -6,6 +6,7 @@ import 'package:time_track_transfer/api/configuration.dart';
 import 'package:time_track_transfer/api/toggl/toggl_profile.dart';
 import 'package:time_track_transfer/constants.dart';
 import 'package:time_track_transfer/main.dart';
+import 'package:time_track_transfer/util/response_logs.dart';
 
 @Singleton()
 class TogglApi {
@@ -25,6 +26,10 @@ class TogglApi {
         "https://api.track.toggl.com/api/v9/me?with_related_data=true",
         options: _getHeaderOptions());
 
+    if (configuration.enableLogging == true) {
+      ResponseLog.writeToFile("TogglProfile", response.data.toString());
+    }
+
     return TogglProfile.fromJson(response.data as Map<String, dynamic>);
   }
 
@@ -33,6 +38,10 @@ class TogglApi {
         "https://api.track.toggl.com/api/v9/workspaces/$workspaceId/time_entries",
         options: _getHeaderOptions(),
     data: data);
+
+    if (configuration.enableLogging == true) {
+      ResponseLog.writeToFile("TogglPostTimeEntry", response.data.toString());
+    }
 
     return response;
   }

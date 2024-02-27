@@ -10,6 +10,7 @@ import 'package:time_track_transfer/api/jira/jira_search_response.dart';
 import 'package:time_track_transfer/api/jira/jira_task.dart';
 import 'package:time_track_transfer/constants.dart';
 import 'package:time_track_transfer/main.dart';
+import 'package:time_track_transfer/util/response_logs.dart';
 
 @Singleton()
 class JiraApi {
@@ -33,6 +34,10 @@ class JiraApi {
         "${configuration.jiraEndpoint}/rest/api/2/project",
         options: _getHeaderOptions());
 
+    if (configuration.enableLogging == true) {
+      ResponseLog.writeToFile("JiraGetProjects", response.data.toString());
+    }
+
     return (response.data as List)
         .map((i) => JiraProject.fromJson(i as Map<String, dynamic>))
         .toList(growable: false);
@@ -42,6 +47,10 @@ class JiraApi {
     Response response = await client.get(
         "${configuration.jiraEndpoint}/rest/api/2/project/$projectId/statuses",
         options: _getHeaderOptions());
+
+    if (configuration.enableLogging == true) {
+      ResponseLog.writeToFile("JiraGetStatuses", response.data.toString());
+    }
 
     return (response.data as List)
         .map((i) => JiraTask.fromJson(i as Map<String, dynamic>))
@@ -55,6 +64,10 @@ class JiraApi {
         options: _getHeaderOptions(),
         data:
             "{\"jql\":\"project = $projectId AND assignee was currentUser() on '$date' AND status was '$status' on '$date'\", \"fields\":[\"key\", \"summary\"]}");
+
+    if (configuration.enableLogging == true) {
+      ResponseLog.writeToFile("JiraSearch", response.data.toString());
+    }
 
     return JiraSearchResponse.fromJson(response.data as Map<String, dynamic>)
         .issues;

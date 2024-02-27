@@ -64,6 +64,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   String? _error;
 
+  bool _enableLogging = false;
+
   @override
   void initState() {
     _jiraEndpointController = TextEditingController();
@@ -88,6 +90,10 @@ class _ConfigScreenState extends State<ConfigScreen> {
     });
 
     _readConfiguration();
+
+    if (_configuration?.enableLogging != null) {
+      _enableLogging = _configuration!.enableLogging!;
+    }
 
     super.initState();
   }
@@ -137,6 +143,13 @@ class _ConfigScreenState extends State<ConfigScreen> {
     } catch (e) {
       setError(e);
     }
+  }
+
+  void _toggleSwitch(bool value) {
+    setState(() {
+      _enableLogging = !_enableLogging;
+      _configuration?.enableLogging = _enableLogging;
+    });
   }
 
   void setError(Object e) {
@@ -210,6 +223,17 @@ class _ConfigScreenState extends State<ConfigScreen> {
     return [
       Column(
         children: [
+          ListTile(
+              title: const Heading18(text: 'Response Logging'),
+              subtitle: const Text(
+                'write responses to user documents folder',
+              ),
+              trailing: Switch(
+                value: _enableLogging,
+                onChanged: _toggleSwitch,
+                activeColor: Colors.deepPurple,
+              )),
+          const SizedBox(height: 16),
           const Heading18(text: "Jira Configuration"),
           const SizedBox(height: 8),
           TextField(

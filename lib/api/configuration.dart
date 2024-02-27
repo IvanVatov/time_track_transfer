@@ -33,6 +33,7 @@ class Configuration {
   int? startingHour;
   int? startingHourMinutes;
 
+  bool? enableLogging;
 
   Configuration();
 

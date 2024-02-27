@@ -38,7 +38,8 @@ Configuration _$ConfigurationFromJson(Map<String, dynamic> json) =>
       ..workingHours = json['workingHours'] as int?
       ..workingHoursMinutes = json['workingHoursMinutes'] as int?
       ..startingHour = json['startingHour'] as int?
-      ..startingHourMinutes = json['startingHourMinutes'] as int?;
+      ..startingHourMinutes = json['startingHourMinutes'] as int?
+      ..enableLogging = json['enableLogging'] as bool?;
 
 Map<String, dynamic> _$ConfigurationToJson(Configuration instance) =>
     <String, dynamic>{
@@ -58,4 +59,5 @@ Map<String, dynamic> _$ConfigurationToJson(Configuration instance) =>
       'workingHoursMinutes': instance.workingHoursMinutes,
       'startingHour': instance.startingHour,
       'startingHourMinutes': instance.startingHourMinutes,
+      'enableLogging': instance.enableLogging,
     };
