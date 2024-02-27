@@ -31,7 +31,7 @@ class ConfigScreen extends StatefulWidget {
 
 enum Step { setupJira, selectProject, selectStatus, setupToggl, trackingSetup }
 
-enum JiraAuthorization { basic, bearer }
+enum JiraAuthorization { basic, bearer, cookie }
 
 class _ConfigScreenState extends State<ConfigScreen> {
   final JiraApi _jiraApi = getIt<JiraApi>();
@@ -280,6 +280,18 @@ class _ConfigScreenState extends State<ConfigScreen> {
                   },
                 ),
               ),
+              ListTile(
+                title: const Text('Cookie'),
+                leading: Radio<JiraAuthorization>(
+                  value: JiraAuthorization.cookie,
+                  groupValue: _jiraAuthorization,
+                  onChanged: (JiraAuthorization? value) {
+                    setState(() {
+                      if (value != null) _jiraAuthorization = value;
+                    });
+                  },
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -290,9 +302,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 _configuration?.jiraEndpoint =
                     "${jiraUri.scheme}://${jiraUri.host.toString()}";
                 _configuration?.jiraEmail = _jiraEmailController.value.text;
-                _configuration?.jiraToken = _jiraTokenController.value.text;
-                _configuration?.jiraIsBasic =
-                    _jiraAuthorization == JiraAuthorization.basic;
+                _configuration?.jiraToken = base64UrlEncode(
+                    utf8.encode(_jiraTokenController.value.text));
+                _configuration?.jiraAuthMethod = _jiraAuthorization.index;
 
                 _jiraApi.configuration = _configuration!;
                 getJiraProjects();
@@ -674,6 +686,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
     var jiraToken = _configuration?.jiraToken;
 
     if (jiraToken != null) {
+      jiraToken = utf8.decode(base64.decode(jiraToken));
       _jiraTokenController.value = TextEditingValue(
         text: jiraToken,
         selection: TextSelection.fromPosition(
@@ -684,11 +697,13 @@ class _ConfigScreenState extends State<ConfigScreen> {
       _jiraTokenController.clear();
     }
 
-    var jiraIsBasic = _configuration?.jiraIsBasic;
-    if (jiraIsBasic != null && jiraIsBasic) {
+    var jiraAuthMethod = _configuration?.jiraAuthMethod;
+    if (jiraAuthMethod != null && jiraAuthMethod == 0) {
       _jiraAuthorization = JiraAuthorization.basic;
-    } else {
+    } else if (jiraAuthMethod != null && jiraAuthMethod == 1) {
       _jiraAuthorization = JiraAuthorization.bearer;
+    } else if (jiraAuthMethod != null && jiraAuthMethod == 2) {
+      _jiraAuthorization = JiraAuthorization.cookie;
     }
 
     var togglToken = _configuration?.togglToken;

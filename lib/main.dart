@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/di.dart';
@@ -13,27 +14,29 @@ import 'package:time_track_transfer/util/Storage.dart';
 const storage = Storage();
 
 final Dio client = Dio();
-  // ..httpClientAdapter =
-  // IOHttpClientAdapter(onHttpClientCreate: (client) {
-  //   client.findProxy = (uri) {
-  //     return 'PROXY localhost:8888';
-  //   };
-  //   return client;
-  // });
 
-
-// class TrustAllCertsOverrides extends HttpOverrides {
-//   @override
-//   HttpClient createHttpClient(SecurityContext? context) {
-//     return super.createHttpClient(context)
-//       ..badCertificateCallback =
-//           (X509Certificate cert, String host, int port) => true;
-//   }
-// }
+class TrustAllCertsOverrides extends HttpOverrides {
+  @override
+  HttpClient createHttpClient(SecurityContext? context) {
+    return super.createHttpClient(context)
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
+  }
+}
 
 void main() {
+  if (kDebugMode) {
 
-  // HttpOverrides.global = TrustAllCertsOverrides();
+    HttpOverrides.global = TrustAllCertsOverrides();
+
+    client.httpClientAdapter = IOHttpClientAdapter(createHttpClient: () {
+      final client = HttpClient();
+      client.findProxy = (uri) {
+        return 'PROXY localhost:8888';
+      };
+      return client;
+    });
+  }
 
   configureDependencies();
 
@@ -76,28 +79,28 @@ final GoRouter routerConfig = GoRouter(
 class TimeTrackTransfer extends StatelessWidget {
   const TimeTrackTransfer({super.key});
 
-  // This widget is the root of your application.
+// This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
       routerConfig: routerConfig,
       title: 'Time Track Transfer',
       theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a blue toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
+// This is the theme of your application.
+//
+// TRY THIS: Try running your application with "flutter run". You'll see
+// the application has a blue toolbar. Then, without quitting the app,
+// try changing the seedColor in the colorScheme below to Colors.green
+// and then invoke "hot reload" (save your changes or press the "hot
+// reload" button in a Flutter-supported IDE, or press "r" if you used
+// the command line to start the app).
+//
+// Notice that the counter didn't reset back to zero; the application
+// state is not lost during the reload. To reset the state, use hot
+// restart instead.
+//
+// This works for code too, not just values: Most code changes can be
+// tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),

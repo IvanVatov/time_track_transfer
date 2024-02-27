@@ -14,7 +14,8 @@ class Configuration {
   String? jiraEndpoint;
   String? jiraEmail;
   String? jiraToken;
-  bool? jiraIsBasic;
+
+  int? jiraAuthMethod;
 
   String? togglToken;
 

@@ -10,6 +10,7 @@ import 'package:time_track_transfer/api/jira/jira_search_response.dart';
 import 'package:time_track_transfer/api/jira/jira_task.dart';
 import 'package:time_track_transfer/constants.dart';
 import 'package:time_track_transfer/main.dart';
+import 'package:time_track_transfer/ui/screen/config_screen.dart';
 import 'package:time_track_transfer/util/response_logs.dart';
 
 @Singleton()
@@ -19,14 +20,15 @@ class JiraApi {
   JiraApi();
 
   Options _getHeaderOptions() {
-    String authorization;
-    if (configuration.jiraIsBasic == true) {
-      authorization = "${Constants.keyBearer} ${configuration.jiraToken}";
-    } else {
-      authorization =
-          "${Constants.keyBasic} ${base64Encode(utf8.encode("${configuration.jiraEmail}:${configuration.jiraToken}"))}";
+    final String token = utf8.decode(base64.decode(configuration.jiraToken!));
+    if (configuration.jiraAuthMethod == JiraAuthorization.bearer.index) {
+      return Options(headers: {Constants.keyAuthorization: "${Constants.keyBearer} $token"});
+    } else if (configuration.jiraAuthMethod == JiraAuthorization.basic.index) {
+        return Options(headers: {Constants.keyAuthorization: "${Constants.keyBasic} ${base64Encode(utf8.encode("${configuration.jiraEmail}:$token"))}"});
+    } else if (configuration.jiraAuthMethod == JiraAuthorization.cookie.index) {
+      return Options(headers: {Constants.keyCookie: token});
     }
-    return Options(headers: {Constants.keyAuthorization: authorization});
+    throw Exception("Not implementer authorization method");
   }
 
   Future<List<JiraProject>> getProjects() async {
