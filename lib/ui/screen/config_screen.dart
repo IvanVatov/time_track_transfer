@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/api/configuration.dart';
@@ -35,7 +34,14 @@ class ConfigScreen extends StatefulWidget {
   State<ConfigScreen> createState() => _ConfigScreenState();
 }
 
-enum Step { setupJira, selectProject, selectStatus, setupToggl, trackingSetup }
+enum Step {
+  setupJira,
+  setupToggl,
+  selectProject,
+  selectStatus,
+  selectToggl,
+  trackingSetup
+}
 
 enum JiraAuthorization { basic, bearer, cookie }
 
@@ -117,7 +123,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       }
       setState(() {
         _jiraProjects = result;
-        _step = Step.selectProject;
+        _step = Step.setupToggl;
       });
     } catch (e) {
       setError(e);
@@ -147,6 +153,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
       setState(() {
         _togglProfile = result;
+        _step = Step.selectProject;
       });
     } catch (e) {
       setError(e);
@@ -221,15 +228,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
               if (inputFile != null) {
                 try {
                   File file = File(inputFile.files.single.path!);
-                  final config = Configuration.fromJson(
-                      jsonDecode(file.readAsStringSync())
-                          as Map<String, dynamic>);
-
-                  setState(() {
-                    _configuration = config;
-                    _saveConfiguration();
-                    showSuccessMessage('Configuration loaded successfully!');
-                  });
+                  _initConfiguration(file.readAsStringSync());
+                  showSuccessMessage('Configuration loaded successfully!');
                 } catch (e) {
                   showErrorMessage('Invalid configuration file!');
                 }
@@ -267,12 +267,14 @@ class _ConfigScreenState extends State<ConfigScreen> {
     switch (_step) {
       case Step.setupJira:
         return _stepJiraConfig();
+      case Step.setupToggl:
+        return _stepToggleSetup();
       case Step.selectProject:
         return _stepSelectProject();
       case Step.selectStatus:
         return _stepSelectStatus();
-      case Step.setupToggl:
-        return _stepToggleSetup();
+      case Step.selectToggl:
+        return _stepToggleSelect();
       case Step.trackingSetup:
         return _stepTrackingSetup();
     }
@@ -310,7 +312,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           TextField(
             controller: _jiraTokenController,
             decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: 'Jira API token or cookie'),
+                border: OutlineInputBorder(),
+                labelText: 'Jira API token or cookie'),
           ),
           const SizedBox(height: 16),
           Column(
@@ -374,12 +377,81 @@ class _ConfigScreenState extends State<ConfigScreen> {
     ];
   }
 
+  Widget getMappingWidget() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: MediaQuery.of(context).size.width - 100,
+          height: 96, // Set the height as per your requirement
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: _configuration!.mappings.length,
+            // Change this as per your requirement
+            itemBuilder: (BuildContext context, int index) {
+              // Here you can return the widgets you want in your row
+              final mapping = _configuration!.mappings[index];
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(0, 0, 32, 0),
+                child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      ElevatedButton(
+                        style:
+                            ElevatedButton.styleFrom(fixedSize: Size(86, 86)),
+                        onPressed:
+                            _configuration?.mappings[index] != _currentMapping
+                                ? () {
+                                    setState(() {
+                                      _currentMapping = mapping;
+                                      _step = Step.selectProject;
+                                    });
+                                  }
+                                : null,
+                        child: Text('N ${index + 1}\n'),
+                      ),
+                      Column(
+                        children: [
+                          IconButton(
+                            onPressed: _configuration?.mappings[index] !=
+                                    _currentMapping
+                                ? () {
+                                    setState(() {
+                                      _configuration?.mappings.removeAt(index);
+                                    });
+                                  }
+                                : null,
+                            icon: const Icon(Icons.delete_outline),
+                            color: Colors.red,
+                            tooltip: 'Delete mapping N ${index + 1}',
+                          ),
+                          IconButton(
+                            onPressed: null,
+                            icon: const Icon(Icons.info_outline),
+                            color: Colors.red,
+                            tooltip: _getMappingPreviewString(mapping),
+                          )
+                        ],
+                      )
+                    ]),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
   List<Widget> _stepSelectProject() {
     return [
       Column(
         children: [
+          getMappingWidget(),
+          const SizedBox(height: 16),
           DropdownButtonFormField<JiraProject>(
-            value: _currentMapping.jiraProject,
+            value: _jiraProjects!.firstWhereOrNull(
+                (element) => element.id == _currentMapping.jiraProject?.id),
             items: _jiraProjects!
                 .map<DropdownMenuItem<JiraProject>>((JiraProject value) {
               return DropdownMenuItem<JiraProject>(
@@ -388,7 +460,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
               );
             }).toList(),
             decoration: const InputDecoration(border: OutlineInputBorder()),
-            hint: const Text("Select Something"),
+            hint: const Text("Select Jira project"),
             onChanged: (JiraProject? newValue) {
               setState(() {
                 if (newValue != _currentMapping.jiraProject) {
@@ -403,7 +475,6 @@ class _ConfigScreenState extends State<ConfigScreen> {
           ElevatedButton(
               onPressed: () {
                 setState(() {
-                  _saveConfiguration();
                   getStatuses();
                 });
               },
@@ -418,6 +489,10 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
     var current = _projectTasks?.firstWhereOrNull(
         (element) => element.id == _currentMapping.jiraTask?.id);
+
+    children.add(getMappingWidget());
+    children.add(const SizedBox(height: 16));
+
     children.add(
       DropdownButtonFormField<JiraTask>(
         value: current,
@@ -428,7 +503,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
           );
         }).toList(),
         decoration: const InputDecoration(border: OutlineInputBorder()),
-        hint: const Text("Select Task"),
+        hint: const Text("Select Jira task"),
         onChanged: (JiraTask? newValue) {
           setState(() {
             if (newValue != _currentMapping.jiraTask) {
@@ -444,6 +519,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
       var current = _currentMapping.jiraTask?.statuses.firstWhereOrNull(
           (element) => element.id == _currentMapping.jiraStatus?.id);
 
+      children.add(const SizedBox(height: 16));
+
       children.add(
         DropdownButtonFormField<JiraStatus>(
           value: current,
@@ -455,7 +532,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
             );
           }).toList(),
           decoration: const InputDecoration(border: OutlineInputBorder()),
-          hint: const Text("Select Status"),
+          hint: const Text("Select Jira status"),
           onChanged: (JiraStatus? newValue) {
             setState(() {
               _currentMapping.jiraStatus = newValue!;
@@ -466,9 +543,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
       children.add(const SizedBox(height: 16));
       children.add(ElevatedButton(
           onPressed: () {
-            _saveConfiguration();
             setState(() {
-              _step = Step.setupToggl;
+              _step = Step.selectToggl;
             });
           },
           child: const Text('Next')));
@@ -483,155 +559,168 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   List<Widget> _stepToggleSetup() {
     List<Widget> widgets = [];
-    if (_togglProfile == null) {
-      widgets.add(Column(
-        children: [
-          const Heading18(text: "Toggl Configuration"),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _togglTokenController,
-            decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: 'Toggl token'),
-          ),
-          const SizedBox(height: 16),
+    widgets.add(Column(
+      children: [
+        const Heading18(text: "Toggl Configuration"),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _togglTokenController,
+          decoration: const InputDecoration(
+              border: OutlineInputBorder(), labelText: 'Toggl token'),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+            onPressed: () {
+              _configuration?.togglToken = _togglTokenController.value.text;
+              _saveConfiguration();
+
+              _togglApi.configuration = _configuration!;
+              _getTogglProfile();
+            },
+            child: const Text('Next'))
+      ],
+    ));
+    return widgets;
+  }
+
+  List<Widget> _stepToggleSelect() {
+    List<Widget> widgets = [];
+    var current = _togglProfile?.workspaces.firstWhereOrNull(
+        (element) => element.id == _currentMapping.togglWorkspace?.id);
+
+    widgets.add(getMappingWidget());
+
+    widgets.add(
+      DropdownButtonFormField<TogglWorkspace>(
+        value: current,
+        items: _togglProfile!.workspaces
+            .map<DropdownMenuItem<TogglWorkspace>>((TogglWorkspace value) {
+          return DropdownMenuItem<TogglWorkspace>(
+            value: value,
+            child: Text(value.name),
+          );
+        }).toList(),
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+        hint: const Text("Select Toggl workspace"),
+        onChanged: (TogglWorkspace? newValue) {
+          setState(() {
+            _currentMapping.togglWorkspace = newValue!;
+            _currentMapping.togglClient = null;
+            _currentMapping.togglProject = null;
+            _currentMapping.togglTag = null;
+          });
+        },
+      ),
+    );
+
+    if (_currentMapping.togglWorkspace != null) {
+      var current = _togglProfile?.clients.firstWhereOrNull(
+          (element) => element.id == _currentMapping.togglClient?.id);
+
+      widgets.add(DropdownButtonFormField<TogglClient>(
+        value: current,
+        items: _togglProfile!.clients
+            .where(
+                (element) => element.wid == _currentMapping.togglWorkspace?.id)
+            .map<DropdownMenuItem<TogglClient>>((TogglClient value) {
+          return DropdownMenuItem<TogglClient>(
+            value: value,
+            child: Text(value.name),
+          );
+        }).toList(),
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+        hint: const Text("Select Toggl client"),
+        onChanged: (TogglClient? newValue) {
+          setState(() {
+            _currentMapping.togglClient = newValue;
+            _currentMapping.togglProject = null;
+            _currentMapping.togglTag = null;
+          });
+        },
+      ));
+    }
+
+    if (_currentMapping.togglClient != null) {
+      var current = _togglProfile?.projects.firstWhereOrNull(
+          (element) => element.id == _currentMapping.togglProject?.id);
+
+      widgets.add(DropdownButtonFormField<TogglProject>(
+        value: current,
+        items: _togglProfile!.projects
+            .where((element) =>
+                element.workspaceId == _currentMapping.togglWorkspace?.id)
+            .map<DropdownMenuItem<TogglProject>>((TogglProject value) {
+          return DropdownMenuItem<TogglProject>(
+            value: value,
+            child: Text(value.name),
+          );
+        }).toList(),
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+        hint: const Text("Select Toggl project"),
+        onChanged: (TogglProject? newValue) {
+          setState(() {
+            _currentMapping.togglProject = newValue;
+            _currentMapping.togglTag = null;
+          });
+        },
+      ));
+    }
+
+    if (_currentMapping.togglProject != null) {
+      var current = _togglProfile?.tags.firstWhereOrNull(
+          (element) => element.id == _currentMapping.togglTag?.id);
+
+      widgets.add(DropdownButtonFormField<TogglTag>(
+        value: current,
+        items: _togglProfile!.tags
+            .where((element) =>
+                element.workspaceId == _currentMapping.togglWorkspace?.id)
+            .map<DropdownMenuItem<TogglTag>>((TogglTag value) {
+          return DropdownMenuItem<TogglTag>(
+            value: value,
+            child: Text(value.name),
+          );
+        }).toList(),
+        decoration: const InputDecoration(border: OutlineInputBorder()),
+        hint: const Text("Select Toggl tag"),
+        onChanged: (TogglTag? newValue) {
+          setState(() {
+            _currentMapping.togglTag = newValue;
+          });
+        },
+      ));
+    }
+
+    if (_currentMapping.togglTag != null) {
+      widgets.add(const SizedBox(height: 16));
+      widgets.add(
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: [
           ElevatedButton(
-              onPressed: () {
-                _configuration?.togglToken = _togglTokenController.value.text;
-                _togglApi.configuration = _configuration!;
-                _getTogglProfile();
+              onPressed: () async {
+                setState(() {
+                  if (_configuration?.mappings.contains(_currentMapping) ==
+                      false) {
+                    _configuration?.mappings.add(_currentMapping);
+                  }
+                  _currentMapping = ConfigurationMapping();
+                  _step = Step.selectProject;
+                });
+              },
+              child: const Text('Add another')),
+          const SizedBox(width: 16),
+          ElevatedButton(
+              onPressed: () async {
+                setState(() {
+                  if (_configuration?.mappings.contains(_currentMapping) ==
+                      false) {
+                    _configuration?.mappings.add(_currentMapping);
+                  }
+                  _step = Step.trackingSetup;
+                });
               },
               child: const Text('Next'))
-        ],
-      ));
-    } else {
-      var current = _togglProfile?.workspaces.firstWhereOrNull(
-          (element) => element.id == _currentMapping.togglWorkspace?.id);
-
-      widgets.add(
-        DropdownButtonFormField<TogglWorkspace>(
-          value: current,
-          items: _togglProfile!.workspaces
-              .map<DropdownMenuItem<TogglWorkspace>>((TogglWorkspace value) {
-            return DropdownMenuItem<TogglWorkspace>(
-              value: value,
-              child: Text(value.name),
-            );
-          }).toList(),
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-          hint: const Text("Select Something"),
-          onChanged: (TogglWorkspace? newValue) {
-            setState(() {
-              _currentMapping.togglWorkspace = newValue!;
-              _currentMapping.togglClient = null;
-              _currentMapping.togglProject = null;
-              _currentMapping.togglTag = null;
-            });
-          },
-        ),
+        ]),
       );
-
-      if (_currentMapping.togglWorkspace != null) {
-        var current = _togglProfile?.clients.firstWhereOrNull(
-            (element) => element.id == _currentMapping.togglClient?.id);
-
-        widgets.add(DropdownButtonFormField<TogglClient>(
-          value: current,
-          items: _togglProfile!.clients
-              .where((element) =>
-                  element.wid == _currentMapping.togglWorkspace?.id)
-              .map<DropdownMenuItem<TogglClient>>((TogglClient value) {
-            return DropdownMenuItem<TogglClient>(
-              value: value,
-              child: Text(value.name),
-            );
-          }).toList(),
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-          hint: const Text("Select Something"),
-          onChanged: (TogglClient? newValue) {
-            setState(() {
-              _currentMapping.togglClient = newValue;
-              _currentMapping.togglProject = null;
-              _currentMapping.togglTag = null;
-            });
-          },
-        ));
-      }
-
-      if (_currentMapping.togglClient != null) {
-        var current = _togglProfile?.projects.firstWhereOrNull(
-            (element) => element.id == _currentMapping.togglProject?.id);
-
-        widgets.add(DropdownButtonFormField<TogglProject>(
-          value: current,
-          items: _togglProfile!.projects
-              .where((element) =>
-                  element.workspaceId == _currentMapping.togglWorkspace?.id)
-              .map<DropdownMenuItem<TogglProject>>((TogglProject value) {
-            return DropdownMenuItem<TogglProject>(
-              value: value,
-              child: Text(value.name),
-            );
-          }).toList(),
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-          hint: const Text("Select Something"),
-          onChanged: (TogglProject? newValue) {
-            setState(() {
-              _currentMapping.togglProject = newValue;
-              _currentMapping.togglTag = null;
-            });
-          },
-        ));
-      }
-
-      if (_currentMapping.togglProject != null) {
-        var current = _togglProfile?.tags.firstWhereOrNull(
-            (element) => element.id == _currentMapping.togglTag?.id);
-
-        widgets.add(DropdownButtonFormField<TogglTag>(
-          value: current,
-          items: _togglProfile!.tags
-              .where((element) =>
-                  element.workspaceId == _currentMapping.togglWorkspace?.id)
-              .map<DropdownMenuItem<TogglTag>>((TogglTag value) {
-            return DropdownMenuItem<TogglTag>(
-              value: value,
-              child: Text(value.name),
-            );
-          }).toList(),
-          decoration: const InputDecoration(border: OutlineInputBorder()),
-          hint: const Text("Select Something"),
-          onChanged: (TogglTag? newValue) {
-            setState(() {
-              _currentMapping.togglTag = newValue;
-            });
-          },
-        ));
-      }
-
-      if (_currentMapping.togglTag != null) {
-        widgets.add(const SizedBox(height: 16));
-        widgets.add(
-          Row(children: [
-            ElevatedButton(
-                onPressed: () async {
-                  setState(() {
-                    _configuration?.mappings.add(_currentMapping);
-                    _currentMapping = ConfigurationMapping();
-                    _step = Step.selectProject;
-                  });
-                },
-                child: const Text('Add another')),
-            ElevatedButton(
-                onPressed: () async {
-                  setState(() {
-                    _configuration?.mappings.add(_currentMapping);
-                    _step = Step.trackingSetup;
-                  });
-                },
-                child: const Text('Next'))
-          ]),
-        );
-      }
     }
 
     return widgets;
@@ -677,7 +766,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
               context.pushReplacementNamed(RouteName.panel);
             },
-            child: const Text('Next'))
+            child: const Text('Finish'))
       ])
     ];
   }
@@ -688,13 +777,20 @@ class _ConfigScreenState extends State<ConfigScreen> {
   }
 
   Future<void> _readConfiguration() async {
-    var configurationJson = await storage.read(Constants.keyConfiguration);
+    var configurationString = await storage.read(Constants.keyConfiguration);
+    _initConfiguration(configurationString);
+  }
 
-    if (configurationJson != null) {
+  void _initConfiguration(String? configurationString) {
+    if (configurationString != null) {
       _configuration = Configuration.fromJson(
-          json.decode(configurationJson) as Map<String, dynamic>);
+          json.decode(configurationString) as Map<String, dynamic>);
     } else {
       _configuration = Configuration([]);
+    }
+
+    if (_configuration?.mappings.isNotEmpty == true) {
+      _currentMapping = _configuration!.mappings.first!;
     }
 
     var workingHours = _configuration?.workingHours;
@@ -792,5 +888,9 @@ class _ConfigScreenState extends State<ConfigScreen> {
       _togglTokenController.clear();
     }
     setState(() {});
+  }
+
+  String _getMappingPreviewString(ConfigurationMapping mapping) {
+    return 'From Jira\n Project: ${mapping.jiraProject?.name}\n Task: ${mapping.jiraTask?.name}\n Status: ${mapping.jiraStatus?.name}\n\nTo Toggl\n Workspace: ${mapping.togglWorkspace?.name}\n Client: ${mapping.togglClient?.name}\n Project: ${mapping.togglProject?.name}\n Tag: ${mapping.togglTag?.name}';
   }
 }

@@ -166,20 +166,26 @@ class _PanelScreenState extends State<PanelScreen> {
       appBar: AppBar(
         actions: [
           IconButton(
-              onPressed: () {
-                _showDatePickerDialog();
-              },
-              icon: const Icon(Icons.calendar_month)),
+            onPressed: () {
+              _showDatePickerDialog();
+            },
+            icon: const Icon(Icons.calendar_month_outlined),
+            tooltip: 'Check for issues',
+          ),
           IconButton(
-              onPressed: () {
-                _postTimeEntries();
-              },
-              icon: const Icon(Icons.upload)),
+            onPressed: () {
+              _postTimeEntries();
+            },
+            icon: const Icon(Icons.upload_outlined),
+            tooltip: 'Push issues to Toggl',
+          ),
           IconButton(
-              onPressed: () {
-                context.pushReplacementNamed(RouteName.config);
-              },
-              icon: const Icon(Icons.settings))
+            onPressed: () {
+              context.pushReplacementNamed(RouteName.config);
+            },
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Edit configuration',
+          )
         ],
       ),
       body: Padding(
