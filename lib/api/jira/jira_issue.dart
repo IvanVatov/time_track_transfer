@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:time_track_transfer/api/configuration_mapping.dart';
 import 'package:time_track_transfer/api/jira/jira_fields.dart';
 
 part 'jira_issue.g.dart';
@@ -10,6 +11,8 @@ class JiraIssue {
   String key;
   JiraFields fields;
 
+  @JsonKey(includeFromJson: false, includeToJson: false)
+  ConfigurationMapping? mapping;
   @JsonKey(includeFromJson: false, includeToJson: false)
   late DateTime? start;
   @JsonKey(includeFromJson: false, includeToJson: false)

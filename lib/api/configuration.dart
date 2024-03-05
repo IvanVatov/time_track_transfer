@@ -1,4 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
+import 'package:time_track_transfer/api/configuration_mapping.dart';
 import 'package:time_track_transfer/api/jira/jira_project.dart';
 import 'package:time_track_transfer/api/jira/jira_status.dart';
 import 'package:time_track_transfer/api/jira/jira_task.dart';
@@ -19,14 +20,7 @@ class Configuration {
 
   String? togglToken;
 
-  JiraProject? jiraProject;
-  JiraStatus? jiraStatus;
-  JiraTask? jiraTask;
-
-  TogglWorkspace? togglWorkspace;
-  TogglClient? togglClient;
-  TogglProject? togglProject;
-  TogglTag? togglTag;
+  List<ConfigurationMapping> mappings;
 
   int? workingHours;
   int? workingHoursMinutes;
@@ -36,7 +30,7 @@ class Configuration {
 
   bool? enableLogging;
 
-  Configuration();
+  Configuration(this.mappings);
 
   factory Configuration.fromJson(Map<String, dynamic> json) =>
       _$ConfigurationFromJson(json);

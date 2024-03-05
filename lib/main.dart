@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -13,6 +14,8 @@ import 'package:time_track_transfer/util/Storage.dart';
 
 const storage = Storage();
 
+const prettyJson = JsonEncoder.withIndent('    ');
+
 final Dio client = Dio();
 
 class TrustAllCertsOverrides extends HttpOverrides {
@@ -26,7 +29,6 @@ class TrustAllCertsOverrides extends HttpOverrides {
 
 void main() {
   if (kDebugMode) {
-
     HttpOverrides.global = TrustAllCertsOverrides();
 
     client.httpClientAdapter = IOHttpClientAdapter(createHttpClient: () {

@@ -1,9 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:time_track_transfer/api/configuration.dart';
+import 'package:time_track_transfer/api/configuration_mapping.dart';
 import 'package:time_track_transfer/api/jira/jira_project.dart';
 import 'package:time_track_transfer/api/jira/jira_status.dart';
 import 'package:time_track_transfer/api/jira/jira_task.dart';
@@ -19,8 +23,10 @@ import 'package:time_track_transfer/main.dart';
 import 'package:time_track_transfer/ui/widget/text_styles.dart';
 import 'package:time_track_transfer/constants.dart';
 import 'package:collection/collection.dart';
+import 'package:time_track_transfer/util/error_popup.dart';
 import 'package:time_track_transfer/util/hour_minutes.dart';
 import 'package:time_track_transfer/util/pair.dart';
+import 'package:time_track_transfer/util/success_popup.dart';
 
 class ConfigScreen extends StatefulWidget {
   const ConfigScreen({super.key});
@@ -66,6 +72,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
   bool _enableLogging = false;
 
+  ConfigurationMapping _currentMapping = ConfigurationMapping();
+
   @override
   void initState() {
     _jiraEndpointController = TextEditingController();
@@ -103,8 +111,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
     try {
       var result = await _jiraApi.getProjects();
       for (var element in result) {
-        if (element.id == _configuration?.jiraProject?.id) {
-          _configuration?.jiraProject = element;
+        if (element.id == _currentMapping.jiraProject?.id) {
+          _currentMapping.jiraProject = element;
         }
       }
       setState(() {
@@ -119,7 +127,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
   Future<void> getStatuses() async {
     clearError();
     try {
-      var result = await _jiraApi.getStatuses(_configuration!.jiraProject!.id);
+      var result = await _jiraApi.getStatuses(_currentMapping.jiraProject!.id);
       setState(() {
         _projectTasks = result;
         _step = Step.selectStatus;
@@ -184,12 +192,63 @@ class _ConfigScreenState extends State<ConfigScreen> {
       appBar: AppBar(
         actions: [
           IconButton(
-              onPressed: () async {
-                await storage.delete(Constants.keyConfiguration);
-                _step = Step.setupJira;
-                _readConfiguration();
-              },
-              icon: const Icon(Icons.highlight_remove))
+            onPressed: () async {
+              final outputFile = await FilePicker.platform.saveFile(
+                dialogTitle: 'Please select an output file:',
+                fileName: 'time_track_transfer.txt',
+              );
+              final config = _configuration;
+              if (outputFile != null && config != null) {
+                try {
+                  final file = File(outputFile);
+                  file.create();
+                  file.writeAsString(prettyJson.convert(config.toJson()));
+                  showSuccessMessage('Configuration saved successfully!');
+                } catch (e) {
+                  showErrorMessage('Unable to save configuration file!');
+                }
+              } else {
+                showErrorMessage('Canceled');
+              }
+            },
+            icon: const Icon(Icons.save_outlined),
+            tooltip: 'Export configuration',
+          ),
+          IconButton(
+            onPressed: () async {
+              final inputFile = await FilePicker.platform.pickFiles();
+
+              if (inputFile != null) {
+                try {
+                  File file = File(inputFile.files.single.path!);
+                  final config = Configuration.fromJson(
+                      jsonDecode(file.readAsStringSync())
+                          as Map<String, dynamic>);
+
+                  setState(() {
+                    _configuration = config;
+                    _saveConfiguration();
+                    showSuccessMessage('Configuration loaded successfully!');
+                  });
+                } catch (e) {
+                  showErrorMessage('Invalid configuration file!');
+                }
+              } else {
+                showErrorMessage('Canceled');
+              }
+            },
+            icon: const Icon(Icons.upload_file_outlined),
+            tooltip: 'Import configuration',
+          ),
+          IconButton(
+            onPressed: () async {
+              await storage.delete(Constants.keyConfiguration);
+              _step = Step.setupJira;
+              _readConfiguration();
+            },
+            icon: const Icon(Icons.delete_outline),
+            tooltip: 'Clear configuration',
+          ),
         ],
       ),
       body: Padding(
@@ -251,7 +310,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
           TextField(
             controller: _jiraTokenController,
             decoration: const InputDecoration(
-                border: OutlineInputBorder(), labelText: 'Jira API token'),
+                border: OutlineInputBorder(), labelText: 'Jira API token or cookie'),
           ),
           const SizedBox(height: 16),
           Column(
@@ -320,7 +379,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       Column(
         children: [
           DropdownButtonFormField<JiraProject>(
-            value: _configuration?.jiraProject,
+            value: _currentMapping.jiraProject,
             items: _jiraProjects!
                 .map<DropdownMenuItem<JiraProject>>((JiraProject value) {
               return DropdownMenuItem<JiraProject>(
@@ -332,11 +391,11 @@ class _ConfigScreenState extends State<ConfigScreen> {
             hint: const Text("Select Something"),
             onChanged: (JiraProject? newValue) {
               setState(() {
-                if (newValue != _configuration?.jiraProject) {
-                  _configuration?.jiraStatus = null;
-                  _configuration?.jiraTask = null;
+                if (newValue != _currentMapping.jiraProject) {
+                  _currentMapping.jiraStatus = null;
+                  _currentMapping.jiraTask = null;
                 }
-                _configuration?.jiraProject = newValue!;
+                _currentMapping.jiraProject = newValue!;
               });
             },
           ),
@@ -358,7 +417,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
     List<Widget> children = [];
 
     var current = _projectTasks?.firstWhereOrNull(
-        (element) => element.id == _configuration?.jiraTask?.id);
+        (element) => element.id == _currentMapping.jiraTask?.id);
     children.add(
       DropdownButtonFormField<JiraTask>(
         value: current,
@@ -372,23 +431,23 @@ class _ConfigScreenState extends State<ConfigScreen> {
         hint: const Text("Select Task"),
         onChanged: (JiraTask? newValue) {
           setState(() {
-            if (newValue != _configuration?.jiraTask) {
-              _configuration?.jiraStatus = null;
+            if (newValue != _currentMapping.jiraTask) {
+              _currentMapping.jiraStatus = null;
             }
-            _configuration?.jiraTask = newValue!;
+            _currentMapping.jiraTask = newValue!;
           });
         },
       ),
     );
 
-    if (_configuration?.jiraTask != null) {
-      var current = _configuration?.jiraTask?.statuses.firstWhereOrNull(
-          (element) => element.id == _configuration?.jiraStatus?.id);
+    if (_currentMapping.jiraTask != null) {
+      var current = _currentMapping.jiraTask?.statuses.firstWhereOrNull(
+          (element) => element.id == _currentMapping.jiraStatus?.id);
 
       children.add(
         DropdownButtonFormField<JiraStatus>(
           value: current,
-          items: _configuration!.jiraTask!.statuses
+          items: _currentMapping.jiraTask!.statuses
               .map<DropdownMenuItem<JiraStatus>>((JiraStatus value) {
             return DropdownMenuItem<JiraStatus>(
               value: value,
@@ -399,7 +458,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
           hint: const Text("Select Status"),
           onChanged: (JiraStatus? newValue) {
             setState(() {
-              _configuration?.jiraStatus = newValue!;
+              _currentMapping.jiraStatus = newValue!;
             });
           },
         ),
@@ -446,7 +505,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       ));
     } else {
       var current = _togglProfile?.workspaces.firstWhereOrNull(
-          (element) => element.id == _configuration?.togglWorkspace?.id);
+          (element) => element.id == _currentMapping.togglWorkspace?.id);
 
       widgets.add(
         DropdownButtonFormField<TogglWorkspace>(
@@ -462,24 +521,24 @@ class _ConfigScreenState extends State<ConfigScreen> {
           hint: const Text("Select Something"),
           onChanged: (TogglWorkspace? newValue) {
             setState(() {
-              _configuration?.togglWorkspace = newValue!;
-              _configuration?.togglClient = null;
-              _configuration?.togglProject = null;
-              _configuration?.togglTag = null;
+              _currentMapping.togglWorkspace = newValue!;
+              _currentMapping.togglClient = null;
+              _currentMapping.togglProject = null;
+              _currentMapping.togglTag = null;
             });
           },
         ),
       );
 
-      if (_configuration?.togglWorkspace != null) {
+      if (_currentMapping.togglWorkspace != null) {
         var current = _togglProfile?.clients.firstWhereOrNull(
-            (element) => element.id == _configuration?.togglClient?.id);
+            (element) => element.id == _currentMapping.togglClient?.id);
 
         widgets.add(DropdownButtonFormField<TogglClient>(
           value: current,
           items: _togglProfile!.clients
               .where((element) =>
-                  element.wid == _configuration?.togglWorkspace?.id)
+                  element.wid == _currentMapping.togglWorkspace?.id)
               .map<DropdownMenuItem<TogglClient>>((TogglClient value) {
             return DropdownMenuItem<TogglClient>(
               value: value,
@@ -490,23 +549,23 @@ class _ConfigScreenState extends State<ConfigScreen> {
           hint: const Text("Select Something"),
           onChanged: (TogglClient? newValue) {
             setState(() {
-              _configuration?.togglClient = newValue;
-              _configuration?.togglProject = null;
-              _configuration?.togglTag = null;
+              _currentMapping.togglClient = newValue;
+              _currentMapping.togglProject = null;
+              _currentMapping.togglTag = null;
             });
           },
         ));
       }
 
-      if (_configuration?.togglClient != null) {
+      if (_currentMapping.togglClient != null) {
         var current = _togglProfile?.projects.firstWhereOrNull(
-            (element) => element.id == _configuration?.togglProject?.id);
+            (element) => element.id == _currentMapping.togglProject?.id);
 
         widgets.add(DropdownButtonFormField<TogglProject>(
           value: current,
           items: _togglProfile!.projects
               .where((element) =>
-                  element.workspaceId == _configuration?.togglWorkspace?.id)
+                  element.workspaceId == _currentMapping.togglWorkspace?.id)
               .map<DropdownMenuItem<TogglProject>>((TogglProject value) {
             return DropdownMenuItem<TogglProject>(
               value: value,
@@ -517,22 +576,22 @@ class _ConfigScreenState extends State<ConfigScreen> {
           hint: const Text("Select Something"),
           onChanged: (TogglProject? newValue) {
             setState(() {
-              _configuration?.togglProject = newValue;
-              _configuration?.togglTag = null;
+              _currentMapping.togglProject = newValue;
+              _currentMapping.togglTag = null;
             });
           },
         ));
       }
 
-      if (_configuration?.togglProject != null) {
+      if (_currentMapping.togglProject != null) {
         var current = _togglProfile?.tags.firstWhereOrNull(
-            (element) => element.id == _configuration?.togglTag?.id);
+            (element) => element.id == _currentMapping.togglTag?.id);
 
         widgets.add(DropdownButtonFormField<TogglTag>(
           value: current,
           items: _togglProfile!.tags
               .where((element) =>
-                  element.workspaceId == _configuration?.togglWorkspace?.id)
+                  element.workspaceId == _currentMapping.togglWorkspace?.id)
               .map<DropdownMenuItem<TogglTag>>((TogglTag value) {
             return DropdownMenuItem<TogglTag>(
               value: value,
@@ -543,21 +602,35 @@ class _ConfigScreenState extends State<ConfigScreen> {
           hint: const Text("Select Something"),
           onChanged: (TogglTag? newValue) {
             setState(() {
-              _configuration?.togglTag = newValue;
+              _currentMapping.togglTag = newValue;
             });
           },
         ));
       }
 
-      if (_configuration?.togglTag != null) {
+      if (_currentMapping.togglTag != null) {
         widgets.add(const SizedBox(height: 16));
-        widgets.add(ElevatedButton(
-            onPressed: () async {
-              setState(() {
-                _step = Step.trackingSetup;
-              });
-            },
-            child: const Text('Next')));
+        widgets.add(
+          Row(children: [
+            ElevatedButton(
+                onPressed: () async {
+                  setState(() {
+                    _configuration?.mappings.add(_currentMapping);
+                    _currentMapping = ConfigurationMapping();
+                    _step = Step.selectProject;
+                  });
+                },
+                child: const Text('Add another')),
+            ElevatedButton(
+                onPressed: () async {
+                  setState(() {
+                    _configuration?.mappings.add(_currentMapping);
+                    _step = Step.trackingSetup;
+                  });
+                },
+                child: const Text('Next'))
+          ]),
+        );
       }
     }
 
@@ -621,7 +694,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
       _configuration = Configuration.fromJson(
           json.decode(configurationJson) as Map<String, dynamic>);
     } else {
-      _configuration = Configuration();
+      _configuration = Configuration([]);
     }
 
     var workingHours = _configuration?.workingHours;

@@ -14,6 +14,7 @@ import 'package:time_track_transfer/main.dart';
 import 'package:intl/intl.dart';
 import 'package:time_track_transfer/ui/model/date_issues.dart';
 import 'package:time_track_transfer/ui/widget/text_styles.dart';
+import 'package:time_track_transfer/util/error_popup.dart';
 import 'package:time_track_transfer/util/pair.dart';
 import 'package:time_track_transfer/util/working_days.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -60,10 +61,6 @@ class _PanelScreenState extends State<PanelScreen> {
   }
 
   Future<void> _postTimeEntries() async {
-    var workspace = _configuration.togglWorkspace!;
-    var project = _configuration.togglProject!;
-    var tag = _configuration.togglTag!;
-
     var formatter = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", 'en-US');
 
     clearError();
@@ -75,29 +72,37 @@ class _PanelScreenState extends State<PanelScreen> {
 
         for (var issue in element.issues) {
           if (issue.isSelected) {
-            var data = {
-              "billable": true,
-              "created_with": "TimeTrackTransfer",
-              "description": "${issue.key} ${issue.fields.summary}",
-              "duration": issue.duration,
-              "project_id": project.id,
-              "start": formatter.format(issue.start!.toUtc()),
-              "tag_ids": [tag.id],
-              "tags": [tag.name],
-              "workspace_id": workspace.id
-            };
+            final mapping = issue.mapping;
+            if (mapping != null) {
+              var workspace = mapping.togglWorkspace!;
+              var project = mapping.togglProject!;
+              var tag = mapping.togglTag!;
 
-            await _togglApi.postTimeEntries(workspace.id, data);
+              var data = {
+                "billable": true,
+                "created_with": "TimeTrackTransfer",
+                "description": "${issue.key} ${issue.fields.summary}",
+                "duration": issue.duration,
+                "project_id": project.id,
+                "start": formatter.format(issue.start!.toUtc()),
+                "tag_ids": [tag.id],
+                "tags": [tag.name],
+                "workspace_id": workspace.id
+              };
 
-            issue.isPosted = true;
+              await Future.delayed(const Duration(milliseconds: 750));
 
-            setState(() {});
+              await _togglApi.postTimeEntries(workspace.id, data);
+
+              issue.isPosted = true;
+
+              setState(() {});
+            }
           }
-
-          await Future.delayed(const Duration(seconds: 2));
         }
       }
     } catch (e) {
+      showErrorMessage('Error while posting data: $e');
       setError(e);
     }
   }
@@ -112,10 +117,18 @@ class _PanelScreenState extends State<PanelScreen> {
       clearError();
       try {
         for (var element in getWorkingDaysBetweenDates(firstDay, lastDay)) {
+          var dateIssues = DateIssues(element, []);
           var formattedDate = formatter.format(element);
-          var issues = await _jiraApi.search(_configuration.jiraProject!.id,
-              _configuration.jiraStatus!.name, formattedDate);
-          var dateIssues = DateIssues(element, issues);
+
+          for (var mapping in _configuration.mappings) {
+            var issues = await _jiraApi.search(mapping.jiraProject!.id,
+                mapping.jiraStatus!.name, formattedDate);
+            for (var issue in issues) {
+              issue.mapping = mapping;
+            }
+            dateIssues.issues.addAll(issues);
+          }
+
           dateIssues.calculatePeriods(_workingHoursPair, _startTimePair);
           _dateIssuesList.add(dateIssues);
           setState(() {});
