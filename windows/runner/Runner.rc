@@ -63,13 +63,13 @@ IDI_APP_ICON            ICON                    "resources\\app_icon.ico"
 #if defined(FLUTTER_VERSION_MAJOR) && defined(FLUTTER_VERSION_MINOR) && defined(FLUTTER_VERSION_PATCH) && defined(FLUTTER_VERSION_BUILD)
 #define VERSION_AS_NUMBER FLUTTER_VERSION_MAJOR,FLUTTER_VERSION_MINOR,FLUTTER_VERSION_PATCH,FLUTTER_VERSION_BUILD
 #else
-#define VERSION_AS_NUMBER 1,0,0,0
+#define VERSION_AS_NUMBER 0,7,0
 #endif
 
 #if defined(FLUTTER_VERSION)
 #define VERSION_AS_STRING FLUTTER_VERSION
 #else
-#define VERSION_AS_STRING "1.0.0"
+#define VERSION_AS_STRING "0.7.0"
 #endif
 
 VS_VERSION_INFO VERSIONINFO
@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "io.github.ivanvatov.ttt" "\0"
-            VALUE "FileDescription", "time_track_transfer" "\0"
+            VALUE "FileDescription", "Time Track Transfer" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "time_track_transfer" "\0"
+            VALUE "InternalName", "Time Track Transfer" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2023 io.github.ivanvatov.ttt. All rights reserved." "\0"
-            VALUE "OriginalFilename", "time_track_transfer.exe" "\0"
-            VALUE "ProductName", "time_track_transfer" "\0"
+            VALUE "OriginalFilename", "Time Track Transfer.exe" "\0"
+            VALUE "ProductName", "Time Track Transfer" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END
