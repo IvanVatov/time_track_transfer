@@ -219,7 +219,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
               }
             },
             icon: const Icon(Icons.save_outlined),
-            tooltip: 'Export configuration',
+            tooltip: 'Save configuration',
           ),
           IconButton(
             onPressed: () async {
@@ -753,14 +753,15 @@ class _ConfigScreenState extends State<ConfigScreen> {
         const SizedBox(height: 16),
         ElevatedButton(
             onPressed: () async {
-              var workingHours = parseHourMinutes(_workingHours.value.text);
-              var startTime = parseHourMinutes(_startTime.value.text);
+              final workingHours = _workingHours.value.text.split(':');
+              final startTime = _startTime.value.text.split(':');
 
-              _configuration?.workingHours = workingHours?.first;
-              _configuration?.workingHoursMinutes = workingHours?.second;
 
-              _configuration?.startingHour = startTime?.first;
-              _configuration?.startingHourMinutes = startTime?.second;
+              _configuration?.workingHours = int.parse(workingHours.first);
+              _configuration?.workingHoursMinutes = int.parse(workingHours.last);
+
+              _configuration?.startingHour = int.parse(startTime.first);
+              _configuration?.startingHourMinutes = int.parse(startTime.last);
 
               _saveConfiguration();
 
