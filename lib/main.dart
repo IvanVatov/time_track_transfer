@@ -28,7 +28,8 @@ class TrustAllCertsOverrides extends HttpOverrides {
 }
 
 void main() {
-  if (kDebugMode) {
+  // dart:io (HttpClient, HttpOverrides) is not available on web
+  if (kDebugMode && !kIsWeb) {
     HttpOverrides.global = TrustAllCertsOverrides();
 
     client.httpClientAdapter = IOHttpClientAdapter(createHttpClient: () {

@@ -7,13 +7,13 @@ part of 'toggl_tag.dart';
 // **************************************************************************
 
 TogglTag _$TogglTagFromJson(Map<String, dynamic> json) => TogglTag(
-      json['id'] as int,
-      json['workspace_id'] as int,
-      json['name'] as String,
-    );
+  (json['id'] as num).toInt(),
+  (json['workspace_id'] as num).toInt(),
+  json['name'] as String,
+);
 
 Map<String, dynamic> _$TogglTagToJson(TogglTag instance) => <String, dynamic>{
-      'id': instance.id,
-      'workspace_id': instance.workspaceId,
-      'name': instance.name,
-    };
+  'id': instance.id,
+  'workspace_id': instance.workspaceId,
+  'name': instance.name,
+};

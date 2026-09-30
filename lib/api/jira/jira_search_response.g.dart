@@ -14,6 +14,4 @@ JiraSearchResponse _$JiraSearchResponseFromJson(Map<String, dynamic> json) =>
     );
 
 Map<String, dynamic> _$JiraSearchResponseToJson(JiraSearchResponse instance) =>
-    <String, dynamic>{
-      'issues': instance.issues,
-    };
+    <String, dynamic>{'issues': instance.issues};

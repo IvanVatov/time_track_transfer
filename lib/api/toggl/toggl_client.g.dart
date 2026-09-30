@@ -7,11 +7,11 @@ part of 'toggl_client.dart';
 // **************************************************************************
 
 TogglClient _$TogglClientFromJson(Map<String, dynamic> json) => TogglClient(
-      json['id'] as int,
-      json['wid'] as int,
-      json['archived'] as bool,
-      json['name'] as String,
-    );
+  (json['id'] as num).toInt(),
+  (json['wid'] as num).toInt(),
+  json['archived'] as bool,
+  json['name'] as String,
+);
 
 Map<String, dynamic> _$TogglClientToJson(TogglClient instance) =>
     <String, dynamic>{

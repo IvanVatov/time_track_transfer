@@ -8,9 +8,9 @@ part of 'toggl_workspace.dart';
 
 TogglWorkspace _$TogglWorkspaceFromJson(Map<String, dynamic> json) =>
     TogglWorkspace(
-      json['id'] as int,
+      (json['id'] as num).toInt(),
       json['name'] as String,
-      json['organization_id'] as int,
+      (json['organization_id'] as num).toInt(),
     );
 
 Map<String, dynamic> _$TogglWorkspaceToJson(TogglWorkspace instance) =>

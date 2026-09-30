@@ -55,11 +55,9 @@ class _LoadingScreenState extends State<LoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () {
-        return Future(() => false);
-      },
-      child: const Scaffold(
+    return const PopScope(
+      canPop: false,
+      child: Scaffold(
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.spaceAround,

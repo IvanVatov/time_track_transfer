@@ -8,19 +8,21 @@ part of 'configuration.dart';
 
 Configuration _$ConfigurationFromJson(Map<String, dynamic> json) =>
     Configuration(
-      (json['mappings'] as List<dynamic>)
-          .map((e) => ConfigurationMapping.fromJson(e as Map<String, dynamic>))
-          .toList(),
-    )
+        (json['mappings'] as List<dynamic>)
+            .map(
+              (e) => ConfigurationMapping.fromJson(e as Map<String, dynamic>),
+            )
+            .toList(),
+      )
       ..jiraEndpoint = json['jiraEndpoint'] as String?
       ..jiraEmail = json['jiraEmail'] as String?
       ..jiraToken = json['jiraToken'] as String?
-      ..jiraAuthMethod = json['jiraAuthMethod'] as int?
+      ..jiraAuthMethod = (json['jiraAuthMethod'] as num?)?.toInt()
       ..togglToken = json['togglToken'] as String?
-      ..workingHours = json['workingHours'] as int?
-      ..workingHoursMinutes = json['workingHoursMinutes'] as int?
-      ..startingHour = json['startingHour'] as int?
-      ..startingHourMinutes = json['startingHourMinutes'] as int?
+      ..workingHours = (json['workingHours'] as num?)?.toInt()
+      ..workingHoursMinutes = (json['workingHoursMinutes'] as num?)?.toInt()
+      ..startingHour = (json['startingHour'] as num?)?.toInt()
+      ..startingHourMinutes = (json['startingHourMinutes'] as num?)?.toInt()
       ..enableLogging = json['enableLogging'] as bool?;
 
 Map<String, dynamic> _$ConfigurationToJson(Configuration instance) =>

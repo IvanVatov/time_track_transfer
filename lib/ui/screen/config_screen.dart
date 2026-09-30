@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
@@ -200,22 +199,25 @@ class _ConfigScreenState extends State<ConfigScreen> {
         actions: [
           IconButton(
             onPressed: () async {
-              final outputFile = await FilePicker.platform.saveFile(
-                dialogTitle: 'Please select an output file:',
-                fileName: 'time_track_transfer.txt',
-              );
               final config = _configuration;
-              if (outputFile != null && config != null) {
-                try {
-                  final file = File(outputFile);
-                  file.create();
-                  file.writeAsString(prettyJson.convert(config.toJson()));
+              if (config == null) {
+                showErrorMessage('Unable to save configuration file!');
+                return;
+              }
+              try {
+                final outputFile = await FilePicker.saveFile(
+                  dialogTitle: 'Please select an output file:',
+                  fileName: 'time_track_transfer.txt',
+                  bytes: utf8.encode(prettyJson.convert(config.toJson())),
+                  mimeType: 'text/plain',
+                );
+                if (outputFile != null) {
                   showSuccessMessage('Configuration saved successfully!');
-                } catch (e) {
-                  showErrorMessage('Unable to save configuration file!');
+                } else {
+                  showErrorMessage('Canceled');
                 }
-              } else {
-                showErrorMessage('Canceled');
+              } catch (e) {
+                showErrorMessage('Unable to save configuration file!');
               }
             },
             icon: const Icon(Icons.save_outlined),
@@ -223,12 +225,11 @@ class _ConfigScreenState extends State<ConfigScreen> {
           ),
           IconButton(
             onPressed: () async {
-              final inputFile = await FilePicker.platform.pickFiles();
+              final inputFile = await FilePicker.pickFile();
 
               if (inputFile != null) {
                 try {
-                  File file = File(inputFile.files.single.path!);
-                  _initConfiguration(file.readAsStringSync());
+                  _initConfiguration(utf8.decode(await inputFile.readAsBytes()));
                   showSuccessMessage('Configuration loaded successfully!');
                 } catch (e) {
                   showErrorMessage('Invalid configuration file!');
@@ -292,7 +293,7 @@ class _ConfigScreenState extends State<ConfigScreen> {
               trailing: Switch(
                 value: _enableLogging,
                 onChanged: _toggleSwitch,
-                activeColor: Colors.deepPurple,
+                activeThumbColor: Colors.deepPurple,
               )),
           const SizedBox(height: 16),
           const Heading18(text: "Jira Configuration"),
@@ -316,45 +317,35 @@ class _ConfigScreenState extends State<ConfigScreen> {
                 labelText: 'Jira API token or cookie'),
           ),
           const SizedBox(height: 16),
-          Column(
-            children: <Widget>[
-              ListTile(
-                title: const Text('Basic'),
-                leading: Radio<JiraAuthorization>(
-                  value: JiraAuthorization.basic,
-                  groupValue: _jiraAuthorization,
-                  onChanged: (JiraAuthorization? value) {
-                    setState(() {
-                      if (value != null) _jiraAuthorization = value;
-                    });
-                  },
+          RadioGroup<JiraAuthorization>(
+            groupValue: _jiraAuthorization,
+            onChanged: (JiraAuthorization? value) {
+              setState(() {
+                if (value != null) _jiraAuthorization = value;
+              });
+            },
+            child: const Column(
+              children: <Widget>[
+                ListTile(
+                  title: Text('Basic'),
+                  leading: Radio<JiraAuthorization>(
+                    value: JiraAuthorization.basic,
+                  ),
                 ),
-              ),
-              ListTile(
-                title: const Text('Bearer'),
-                leading: Radio<JiraAuthorization>(
-                  value: JiraAuthorization.bearer,
-                  groupValue: _jiraAuthorization,
-                  onChanged: (JiraAuthorization? value) {
-                    setState(() {
-                      if (value != null) _jiraAuthorization = value;
-                    });
-                  },
+                ListTile(
+                  title: Text('Bearer'),
+                  leading: Radio<JiraAuthorization>(
+                    value: JiraAuthorization.bearer,
+                  ),
                 ),
-              ),
-              ListTile(
-                title: const Text('Cookie'),
-                leading: Radio<JiraAuthorization>(
-                  value: JiraAuthorization.cookie,
-                  groupValue: _jiraAuthorization,
-                  onChanged: (JiraAuthorization? value) {
-                    setState(() {
-                      if (value != null) _jiraAuthorization = value;
-                    });
-                  },
+                ListTile(
+                  title: Text('Cookie'),
+                  leading: Radio<JiraAuthorization>(
+                    value: JiraAuthorization.cookie,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -450,7 +441,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           getMappingWidget(),
           const SizedBox(height: 16),
           DropdownButtonFormField<JiraProject>(
-            value: _jiraProjects!.firstWhereOrNull(
+            key: ValueKey('JiraProject-${_currentMapping.jiraProject?.id}'),
+            initialValue: _jiraProjects!.firstWhereOrNull(
                 (element) => element.id == _currentMapping.jiraProject?.id),
             items: _jiraProjects!
                 .map<DropdownMenuItem<JiraProject>>((JiraProject value) {
@@ -495,7 +487,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
     children.add(
       DropdownButtonFormField<JiraTask>(
-        value: current,
+        key: ValueKey('JiraTask-${current?.id}'),
+        initialValue: current,
         items: _projectTasks!.map<DropdownMenuItem<JiraTask>>((JiraTask value) {
           return DropdownMenuItem<JiraTask>(
             value: value,
@@ -523,7 +516,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
       children.add(
         DropdownButtonFormField<JiraStatus>(
-          value: current,
+          key: ValueKey('JiraStatus-${current?.id}'),
+          initialValue: current,
           items: _currentMapping.jiraTask!.statuses
               .map<DropdownMenuItem<JiraStatus>>((JiraStatus value) {
             return DropdownMenuItem<JiraStatus>(
@@ -592,7 +586,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
 
     widgets.add(
       DropdownButtonFormField<TogglWorkspace>(
-        value: current,
+        key: ValueKey('TogglWorkspace-${current?.id}'),
+        initialValue: current,
         items: _togglProfile!.workspaces
             .map<DropdownMenuItem<TogglWorkspace>>((TogglWorkspace value) {
           return DropdownMenuItem<TogglWorkspace>(
@@ -618,7 +613,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           (element) => element.id == _currentMapping.togglClient?.id);
 
       widgets.add(DropdownButtonFormField<TogglClient>(
-        value: current,
+        key: ValueKey('TogglClient-${current?.id}'),
+        initialValue: current,
         items: _togglProfile!.clients
             .where(
                 (element) => element.wid == _currentMapping.togglWorkspace?.id)
@@ -645,7 +641,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           (element) => element.id == _currentMapping.togglProject?.id);
 
       widgets.add(DropdownButtonFormField<TogglProject>(
-        value: current,
+        key: ValueKey('TogglProject-${current?.id}'),
+        initialValue: current,
         items: _togglProfile!.projects
             .where((element) =>
                 element.workspaceId == _currentMapping.togglWorkspace?.id)
@@ -671,7 +668,8 @@ class _ConfigScreenState extends State<ConfigScreen> {
           (element) => element.id == _currentMapping.togglTag?.id);
 
       widgets.add(DropdownButtonFormField<TogglTag>(
-        value: current,
+        key: ValueKey('TogglTag-${current?.id}'),
+        initialValue: current,
         items: _togglProfile!.tags
             .where((element) =>
                 element.workspaceId == _currentMapping.togglWorkspace?.id)

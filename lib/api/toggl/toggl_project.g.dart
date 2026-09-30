@@ -7,12 +7,12 @@ part of 'toggl_project.dart';
 // **************************************************************************
 
 TogglProject _$TogglProjectFromJson(Map<String, dynamic> json) => TogglProject(
-      json['id'] as int,
-      json['workspace_id'] as int,
-      json['name'] as String,
-      json['active'] as bool,
-      json['billable'] as bool? ?? false,
-    );
+  (json['id'] as num).toInt(),
+  (json['workspace_id'] as num).toInt(),
+  json['name'] as String,
+  json['active'] as bool,
+  json['billable'] as bool? ?? false,
+);
 
 Map<String, dynamic> _$TogglProjectToJson(TogglProject instance) =>
     <String, dynamic>{

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:path_provider/path_provider.dart';
 
 class ResponseLog {
@@ -19,6 +20,9 @@ class ResponseLog {
   }
 
   static Future<void> writeToFile(String fileName, String data) async {
+    // there is no file system to write to on web
+    if (kIsWeb) return;
+
     File file = await _getFile(fileName);
 
     file.writeAsString(data);
