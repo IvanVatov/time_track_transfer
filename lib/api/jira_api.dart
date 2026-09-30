@@ -33,7 +33,7 @@ class JiraApi {
 
   Future<List<JiraProject>> getProjects() async {
     Response response = await client.get(
-        "${configuration.jiraEndpoint}/rest/api/3/project",
+        "${configuration.jiraEndpoint}/rest/api/2/project",
         options: _getHeaderOptions());
 
     if (configuration.enableLogging == true) {
@@ -47,7 +47,7 @@ class JiraApi {
 
   Future<List<JiraTask>> getStatuses(String projectId) async {
     Response response = await client.get(
-        "${configuration.jiraEndpoint}/rest/api/3/project/$projectId/statuses",
+        "${configuration.jiraEndpoint}/rest/api/2/project/$projectId/statuses",
         options: _getHeaderOptions());
 
     if (configuration.enableLogging == true) {
@@ -62,7 +62,7 @@ class JiraApi {
   Future<List<JiraIssue>> search(
       String projectId, String status, String date) async {
     Response response = await client.post(
-        "${configuration.jiraEndpoint}/rest/api/3/search",
+        "${configuration.jiraEndpoint}/rest/api/2/search",
         options: _getHeaderOptions(),
         data:
             "{\"jql\":\"project = $projectId AND assignee was currentUser() on '$date' AND status was '$status' on '$date'\", \"fields\":[\"key\", \"summary\"]}");
